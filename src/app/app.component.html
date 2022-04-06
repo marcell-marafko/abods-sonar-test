@@ -1,0 +1,13 @@
+<a [href]="skipLinkContent" class="govuk-skip-link">Skip to main content</a>
+<a [href]="skipLinkNav" class="govuk-skip-link">Skip to navigation</a>
+<div class="app">
+  <app-header [service]="service"></app-header>
+  <div app-inner class="app__body">
+    <app-nav *ngIf="showNav"></app-nav>
+    <div class="app__content" [ngClass]="{ 'app__content--narrow': !showNav }">
+      <!-- routes will be rendered here -->
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+  <app-footer></app-footer>
+</div>

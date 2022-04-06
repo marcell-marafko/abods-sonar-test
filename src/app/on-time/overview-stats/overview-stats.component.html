@@ -1,0 +1,48 @@
+<div *ngIf="showTotal" class="govuk-body-l govuk-!-margin-top-4">
+  <ng-container *ngIf="!loading; else spinner"> </ng-container>
+  <span class="govuk-!-font-weight-bold">{{ completed | number }}</span> departures recorded
+  <ng-template #spinner><app-spinner size="small"></app-spinner></ng-template>
+</div>
+<div class="on-time-overview__stats">
+  <app-stat
+    label="On-time"
+    class="on-time-overview__stat on-time-overview__on-time"
+    [statValue]="(onTime / completed | noInfinity | percent: '1.0-2') || 'Unavailable'"
+    [statLoaded]="!loading"
+    id="on-time-overview-stat-on-time"
+    [tooltip]="onTimeTooltipText"
+  ></app-stat>
+  <app-stat
+    label="Late"
+    class="on-time-overview__stat on-time-overview__late"
+    [statValue]="(late / completed | noInfinity | percent: '1.0-2') || 'Unavailable'"
+    [statLoaded]="!loading"
+    [tooltip]="lateTooltipText"
+    id="on-time-overview-stat-late"
+  ></app-stat>
+  <app-stat
+    label="Early"
+    class="on-time-overview__stat on-time-overview__early"
+    [statValue]="(early / completed | noInfinity | percent: '1.0-2') || 'Unavailable'"
+    [statLoaded]="!loading"
+    [tooltip]="earlyTooltipText"
+    id="on-time-overview-stat-early"
+  ></app-stat>
+  <app-stat
+    *ngIf="frequent && headwayOverview"
+    label="Excess wait time"
+    class="on-time-overview__stat"
+    [statValue]="(headwayOverview?.excess || 0) * 60000 | durationFromMilliseconds | durationToFormat: 'm:ss'"
+    [statLoaded]="!loading"
+    tooltip="The average additional time that passengers had to wait due to irregular spacing of buses or those which failed to run."
+  ></app-stat>
+  <app-stat
+    *ngIf="!showTotal"
+    label="No data"
+    class="on-time-overview__stat on-time-overview__no-data"
+    [statValue]="(noData / scheduled | noInfinity | percent: '1.0-2') || 'Unavailable'"
+    [statLoaded]="!loading"
+    [tooltip]="noDataTooltipText"
+    id="on-time-overview-stat-no-data"
+  ></app-stat>
+</div>

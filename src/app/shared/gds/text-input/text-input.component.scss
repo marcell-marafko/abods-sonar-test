@@ -1,0 +1,15 @@
+.text-input {
+  &__label {
+    &--required {
+      &:after {
+        content: '*';
+      }
+    }
+  }
+
+  &--no-cal {
+    &::-webkit-calendar-picker-indicator {
+      pointer-events: none;
+    }
+  }
+}

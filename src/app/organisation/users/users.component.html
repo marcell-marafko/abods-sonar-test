@@ -1,0 +1,70 @@
+<app-page>
+  <ng-container ngProjectAs="content">
+    <gds-notification-banner *ngIf="inviteSent" title="Invite sent" identifier="invite-sent" [success]="true">
+      <div class="govuk-body">An invite has been sent to {{ inviteEmail }}</div>
+    </gds-notification-banner>
+    <app-page-header heading="Users & permissions" caption="My organisation" spaceAbove="2"></app-page-header>
+    <h2 class="govuk-body-l">{{ authenticatedUser?.organisation?.name }}</h2>
+    <table *ngIf="loaded && !errored" class="govuk-table">
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th scope="col" class="govuk-table__header">Name</th>
+          <th scope="col" class="govuk-table__header">Email</th>
+          <!-- <th scope="col" class="govuk-table__header">Last login</th> -->
+          <th scope="col" class="govuk-table__header">Role</th>
+          <th scope="col" class="govuk-table__header"></th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        <tr *ngFor="let user of users" class="govuk-table__row">
+          <td class="govuk-table__cell">{{ user.firstName }} {{ user.lastName }}</td>
+          <td class="govuk-table__cell">{{ user.email }}</td>
+          <!-- <td class="govuk-table__cell">3 hours ago</td> -->
+          <td class="govuk-table__cell">{{ user.roles[0].name }}</td>
+          <td class="govuk-table__cell">
+            <a
+              [routerLink]="['edit', user.username]"
+              class="govuk-link"
+              *ngIf="authenticatedUserIsAdmin && user.email !== authenticatedUser?.email"
+              >Edit</a
+            >
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <gds-button
+      *ngIf="authenticatedUserIsOrgUser && authenticatedUserIsAdmin"
+      text="Invite a new user"
+      (click)="openInviteModal()"
+    ></gds-button>
+    <app-modal title="Invite a user" identifier="inviteUser">
+      <form [formGroup]="inviteForm" (ngSubmit)="onSubmitInvite()">
+        <gds-error-summary [errors]="errors"></gds-error-summary>
+        <gds-text-input
+          inputId="email"
+          formControlName="email"
+          label="Email address"
+          [error]="getError('email')"
+          [required]="true"
+        >
+        </gds-text-input>
+        <gds-radios
+          legend="Access level"
+          size="small"
+          layout="inline"
+          [error]="getError('roleId')"
+          identifier="new-user-role"
+        >
+          <gds-radio-item
+            *ngFor="let role of roles"
+            [inputId]="'invite-role-' + role.id"
+            formControlName="roleId"
+            [value]="role.id"
+            [label]="role.name"
+          ></gds-radio-item>
+        </gds-radios>
+        <gds-button text="Invite user" spaceBelow="0" type="submit"></gds-button>
+      </form>
+    </app-modal>
+  </ng-container>
+</app-page>

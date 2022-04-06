@@ -1,0 +1,101 @@
+@import 'src/assets/styles/settings/settings';
+@import 'src/assets/styles/helpers/helpers.scss';
+
+.ng-select.operator-select {
+  &.ng-select-focused {
+    .ng-select-container {
+      color: $govuk-focus-text-colour;
+      background-color: $govuk-focus-colour;
+      box-shadow: 0 -2px $govuk-focus-colour, 0 0 2px $govuk-focus-colour, 0 4px $govuk-focus-text-colour !important;
+      .ng-arrow {
+        border-color: govuk-colour('black');
+      }
+    }
+  }
+
+  .ng-select-container {
+    border: none;
+    border-radius: 0;
+    @include govuk-font(24);
+    font-weight: $font-weight-bold;
+    color: $govuk-link-colour;
+    &:hover {
+      box-shadow: none;
+    }
+    .ng-value-container {
+      padding-left: 5px;
+      flex-basis: auto; //fixes IE11 issue with flex-basis being set to 0
+    }
+    .ng-input {
+      padding-left: 5px;
+      padding-right: 25px;
+      color: $govuk-text-colour;
+      @include govuk-font(19);
+    }
+    .ng-arrow-wrapper {
+      width: 32px;
+    }
+    .ng-arrow {
+      top: -4px;
+      border: solid govuk-colour('blue');
+      border-width: 0 2px 2px 0;
+      padding: 4px;
+      transform: rotate(45deg);
+    }
+  }
+
+  &.ng-select-opened {
+    .ng-arrow {
+      transform: rotate(-135deg);
+      top: 0;
+    }
+  }
+
+  .ng-dropdown-panel {
+    min-width: 240px;
+    padding: govuk-spacing(1);
+    border: 1px solid govuk-colour('black');
+    background: white;
+    border-radius: 0;
+    margin-top: 2px; // allows a little of the focus shadow to be visible
+
+    .ng-dropdown-panel-items {
+      max-height: 230px;
+      &::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background-color: govuk-colour('mid-grey');
+        border: none;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      scrollbar-width: thin;
+      scrollbar-color: govuk-colour('mid-grey') transparent;
+    }
+    .ng-option {
+      padding: 5px 5px;
+      &:last-child {
+        border-radius: 0;
+      }
+    }
+    .ng-option-label {
+      color: $govuk-text-colour;
+      @include govuk-font(19);
+      font-weight: $font-weight-normal;
+    }
+
+    .ng-option-marked,
+    .ng-option-selected.ng-option-marked {
+      background-color: govuk-colour('blue');
+      .ng-option-label {
+        color: #fff;
+      }
+    }
+    .ng-option-selected {
+      background-color: transparent;
+    }
+  }
+}

@@ -1,0 +1,251 @@
+<mgl-map
+  [style]="'mapbox://styles/ito-mapbox/ckrdglh551sjc17mvai4xe5a9'"
+  [fitBounds]="bounds"
+  [fitBoundsOptions]="{ padding: 50, duration: 0 }"
+>
+  <mgl-geojson-source
+    *ngIf="servicePatterns"
+    id="patterns"
+    [data]="servicePatterns"
+    [generateId]="true"
+  ></mgl-geojson-source>
+  <mgl-geojson-source
+    *ngIf="stops"
+    id="stops"
+    [cluster]="true"
+    [data]="stops"
+    [clusterRadius]="35"
+    [clusterProperties]="{
+      stopData: [
+        ['concat', ['accumulated'], '|', ['get', 'stopData']],
+        ['concat', ['get', 'naptan'], ',', ['get', 'stopName']],
+      ],
+      lateNormSum: ['+', ['*', ['coalesce', ['get', 'lateNorm'], 0], ['coalesce', ['get', 'total'], 1]]],
+      earlyNormSum: ['+', ['*', ['coalesce', ['get', 'earlyNorm'], 0], ['coalesce', ['get', 'total'], 1]]],
+      delayNormSum: ['+', ['*', ['coalesce', ['get', 'delayNorm'], 0], ['coalesce', ['get', 'total'], 1]]],
+      averageDelaySum: ['+', ['*', ['coalesce', ['get', 'averageDelay'], 0], ['coalesce', ['get', 'total'], 1]]],
+      lateSum: ['+', ['coalesce', ['get', 'late'], 0]],
+      earlySum: ['+', ['coalesce', ['get', 'early'], 0]],
+      totalSum: ['+', ['case', ['get', 'noData'], 0, ['get', 'total']]],
+      noData: ['all', ['get', 'noData']]
+    }"
+  ></mgl-geojson-source>
+  <mgl-layer
+    *ngIf="servicePatterns"
+    id="service-pattern"
+    type="line"
+    [paint]="{
+      'line-color': '#5694ca',
+      'line-width': 3
+    }"
+    [layout]="{
+      'line-cap': 'round',
+      'line-join': 'round'
+    }"
+    source="patterns"
+    before="road-label"
+  >
+  </mgl-layer>
+  <mgl-layer
+    *ngIf="servicePatterns"
+    id="direction"
+    type="symbol"
+    [layout]="{
+      'icon-image': 'map-chevron',
+      'symbol-placement': 'line',
+      'symbol-spacing': 150
+    }"
+    source="patterns"
+  ></mgl-layer>
+  <mgl-layer
+    *ngIf="stops"
+    id="stop-names"
+    type="symbol"
+    [minzoom]="14"
+    [filter]="['has', 'stopName']"
+    [layout]="{
+      'text-ignore-placement': true,
+      'text-field': '{stopName}',
+      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+      'text-size': 12,
+      'text-offset': [0, 1]
+    }"
+    [paint]="{ 'text-color': '#747b7b', 'text-halo-color': '#ffffff', 'text-halo-width': 1, 'text-halo-blur': 1 }"
+    source="stops"
+  ></mgl-layer>
+  <ng-container *ngIf="view === 'route'">
+    <mgl-layer
+      *ngIf="stops"
+      id="stop-markers"
+      type="symbol"
+      [layout]="{ 'icon-image': 'map-circle', 'icon-ignore-placement': true }"
+      source="stops"
+      (layerMouseMove)="setHoveredStop($event)"
+      (layerMouseLeave)="clearHoveredStop()"
+    ></mgl-layer>
+    <mgl-layer
+      *ngIf="stops"
+      id="stop-count"
+      type="symbol"
+      [filter]="['has', 'point_count']"
+      [layout]="{
+        'icon-image': 'map-circle',
+        'text-field': '{point_count_abbreviated}',
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+        'text-size': 8
+      }"
+      [paint]="{ 'text-color': '#0b0c0c', 'text-halo-color': '#ffffff', 'text-halo-width': 1, 'text-halo-blur': 1 }"
+      source="stops"
+      (layerMouseMove)="setHoveredStop($event)"
+      (layerMouseLeave)="clearHoveredStop()"
+    ></mgl-layer>
+  </ng-container>
+  <ng-container *ngIf="view === 'performance'">
+    <mgl-layer
+      *ngIf="stops"
+      id="on-time-performance"
+      type="circle"
+      source="stops"
+      [paint]="{
+        'circle-color': ['case', isNoData, '#b1b4b6', isOnTime, '#4c2c92', isLate, '#e5c700', '#d53880'],
+        'circle-radius': [
+          'case',
+          ['any', isNoData, isOnTime],
+          8,
+          ['interpolate', ['linear'], greatestEarlyOrLate, 0, 12, 3, 36]
+        ],
+        'circle-stroke-width': [
+          'case',
+          isBothLateAndEarly,
+          ['interpolate', ['linear'], smallestEarlyOrLate, 0, 4, 3, 12],
+          0
+        ],
+        'circle-stroke-color': ['case', isLate, '#d53880', '#e5c700']
+      }"
+      (layerMouseMove)="setHoveredStop($event)"
+      (layerMouseLeave)="clearHoveredStop()"
+    ></mgl-layer>
+    <mgl-layer
+      *ngIf="stops"
+      id="on-time-performance-text"
+      type="symbol"
+      source="stops"
+      [filter]="['!', ['any', isNoData, isOnTime]]"
+      [paint]="{ 'text-color': '#ffffff' }"
+      [layout]="{
+        'text-ignore-placement': true,
+        'text-field': [
+          'concat',
+          [
+            'number-format',
+            ['*', ['case', isLate, getLateRatio, getEarlyRatio], 100],
+            { 'max-fraction-digits': ['case', ['>', greatestEarlyOrLate, 0.6], 1, 0] }
+          ],
+          '%'
+        ],
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+        'text-size': 12
+      }"
+    ></mgl-layer>
+    <mgl-control position="bottom-right">
+      <div class="map__legend map__legend--otp">
+        <span class="map__dot map__dot--3 map__dot--early"></span>
+        <span class="map__dot map__dot--2 map__dot--early"></span>
+        <span class="map__dot map__dot--1 map__dot--on-time"></span>
+        <span class="map__dot map__dot--2 map__dot--late"></span>
+        <span class="map__dot map__dot--3 map__dot--late"></span>
+        <span style="grid-area: early">Early</span>
+        <span class="map__legend-item" style="grid-area: ontime">On-time</span>
+        <span style="grid-area: late">Late</span>
+      </div>
+    </mgl-control>
+  </ng-container>
+  <ng-container *ngIf="view === 'delay'">
+    <mgl-layer
+      *ngIf="stops"
+      id="delay"
+      type="circle"
+      source="stops"
+      [paint]="{
+        'circle-color': [
+          'case',
+          isNoData,
+          '#b1b4b6',
+          ['<', getDelay, -60],
+          '#d53880',
+          ['<', getDelay, 360],
+          '#4c2c92',
+          '#e5c700'
+        ],
+        'circle-radius': ['case', isNoData, 8, ['interpolate', ['linear'], ['abs', getDelayNorm], 0, 14, 3, 36]]
+      }"
+      (layerMouseMove)="setHoveredStop($event)"
+      (layerMouseLeave)="clearHoveredStop()"
+    ></mgl-layer>
+    <mgl-layer
+      *ngIf="stops"
+      id="delay-text"
+      type="symbol"
+      source="stops"
+      [filter]="['!', isNoData]"
+      [paint]="{ 'text-color': '#ffffff' }"
+      [layout]="{
+        'text-ignore-placement': true,
+        'text-field': [
+          'concat',
+          ['case', ['>=', getDelay, 0], '+', '-'],
+          delayMinutes,
+          ':',
+          ['case', ['<', delaySeconds, 10], '0', ''],
+          delaySeconds
+        ],
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+        'text-size': ['step', ['abs', getDelayNorm], 10, 0.6, 12]
+      }"
+    ></mgl-layer>
+    <mgl-control position="bottom-right">
+      <div class="map__legend map__legend--delay">
+        <span class="map__dot map__dot--1 map__dot--on-time"></span>
+        <span>On-time</span>
+        <span class="map__dot map__dot--1 map__dot--late"></span>
+        <span>Late <span class="map__legend-hint">(> 5:59 minutes)</span></span>
+        <span class="map__dot map__dot--1 map__dot--early"></span>
+        <span>Early <span class="map__legend-hint">(> 1 minute)</span></span>
+      </div>
+    </mgl-control>
+  </ng-container>
+  <mgl-popup
+    *ngIf="popupInfo"
+    [lngLat]="popupInfo.position"
+    [closeButton]="false"
+    [closeOnClick]="false"
+    [ngSwitch]="popupInfo.type"
+  >
+    <div *ngSwitchCase="'stop'">
+      <div>
+        <strong>{{ stopInfo?.stop?.stopName }}</strong>
+      </div>
+      <div>{{ stopInfo?.stop?.stopLocality }}</div>
+      <div>
+        <span class="map__legend-hint">{{ stopInfo?.stop?.naptan }}</span>
+      </div>
+    </div>
+    <div *ngSwitchCase="'cluster'">
+      <div *ngFor="let stop of clusterInfo?.stops || []">
+        <strong>{{ stop.stopName }}</strong> {{ stop.naptan }}
+      </div>
+    </div>
+  </mgl-popup>
+  <mgl-control position="top-left">
+    <app-segmented-toggle [(ngModel)]="view">
+      <app-segmented-toggle-item
+        label="On-Time Performance"
+        name="view"
+        value="performance"
+      ></app-segmented-toggle-item>
+      <app-segmented-toggle-item label="Delay" name="view" value="delay"></app-segmented-toggle-item>
+      <app-segmented-toggle-item label="Route" name="view" value="route"></app-segmented-toggle-item>
+    </app-segmented-toggle>
+  </mgl-control>
+  <mgl-control mglNavigation></mgl-control>
+</mgl-map>

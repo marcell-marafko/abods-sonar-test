@@ -1,0 +1,38 @@
+<div class="segment-selector">
+  <div class="segment-selector__stops-wrapper" role="list">
+    <div
+      *ngFor="let stop of stops"
+      class="segment-selector__stop"
+      [ngxTippy]="tooltip"
+      tabindex="0"
+      role="listitem"
+      [attr.aria-label]="'Stop - ' + stop.stopName + ' (NaPTAN code: ' + stop.naptan + ')'"
+      [tippyName]="stop.naptan"
+      [tippyProps]="tippyProps"
+      (mouseenter)="mouseEnterStop.emit(stop)"
+      (mouseleave)="mouseLeaveStop.emit(stop)"
+    >
+      <div #tooltip>
+        <div class="govuk-body-small govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ stop.stopName }}</div>
+        <div class="govuk-body-small">{{ stop.naptan }}</div>
+      </div>
+    </div>
+  </div>
+  <button
+    class="unbuttoned segment-selector__segment segment-selector__segment--all"
+    [class.segment-selector__segment--active]="!this.selected"
+    (click)="onSelect()"
+  >
+    <span class="govuk-visually-hidden">All segments</span>
+  </button>
+  <div class="segment-selector__segments-wrapper">
+    <button
+      *ngFor="let segment of segments"
+      class="unbuttoned segment-selector__segment"
+      [class.segment-selector__segment--active]="this.selected === segment"
+      (click)="onSelect(segment)"
+    >
+      <span class="govuk-visually-hidden">Segment - {{ segment[0].stopName }}, {{ segment[1].stopName }}</span>
+    </button>
+  </div>
+</div>

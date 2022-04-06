@@ -1,0 +1,20 @@
+fragment Event on EventType {
+  timestamp
+  type
+  data
+}
+
+query events($nocCode: String!, $start: DateTime!, $end: DateTime!) {
+  events(nocCode: $nocCode, start: $start, end: $end) {
+    items {
+      ...Event
+    }
+  }
+}
+
+query eventStats($nocCode: String!, $start: Date!, $end: Date!) {
+  eventStats(nocCode: $nocCode, start: $start, end: $end) {
+    count
+    day
+  }
+}

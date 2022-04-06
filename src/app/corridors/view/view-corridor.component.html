@@ -1,0 +1,210 @@
+<app-page>
+  <ng-container ngProjectAs="back-link">
+    <gds-back-link label="All corridors" [route]="['/corridors']"></gds-back-link>
+  </ng-container>
+  <ng-container ngProjectAs="content">
+    <div *ngIf="corridor || !errorMessage; else error">
+      <app-page-header
+        *ngIf="corridor; else skeletonHeader"
+        caption="Corridors"
+        [heading]="corridor?.name"
+        spaceAbove="2"
+      ></app-page-header>
+      <app-date-range [formControl]="dateRange"></app-date-range>
+
+      <app-segment-selector
+        [stops]="corridor?.stops"
+        (selectSegment)="selectedStops$.next($event); setMapSelectedState($event)"
+        (deselectSegment)="clearMapSelectedState($event)"
+        (mouseEnterStop)="setMapHoverState($event)"
+        (mouseLeaveStop)="clearMapHoverState($event)"
+      ></app-segment-selector>
+
+      <div class="corridor__summary">
+        <app-stat
+          label="Total transits"
+          class="corridor__summary-stat"
+          [statValue]="(stats?.summaryStats?.totalTransits | number) || 'Unavailable'"
+          [statLoaded]="!loadingStats"
+          tooltip="The total number of journeys that actually passed through the corridor according to real-time information received."
+        ></app-stat>
+        <app-stat
+          label="Services"
+          class="corridor__summary-stat"
+          [statValue]="(stats?.summaryStats?.numberOfServices | number) || 'Unavailable'"
+          [statLoaded]="!loadingStats"
+          tooltip="The total number of different services that pass through this corridor."
+        ></app-stat>
+        <app-stat
+          label="Average journey time"
+          class="corridor__summary-stat"
+          [statValue]="(averageJourneyTime | durationToFormat: 'mm:ss') || 'Unavailable'"
+          [statLoaded]="!loadingStats"
+          tooltip="The average time taken for a bus to move through the corridor according to real-time information received."
+        ></app-stat>
+        <app-stat
+          label="Missing transits"
+          class="corridor__summary-stat"
+          [statValue]="(missingTransits | number) || 'Unavailable'"
+          [statLoaded]="!loadingStats"
+          tooltip="The number of journeys in the timetables provided that do not have real-time information recorded against them."
+        ></app-stat>
+      </div>
+
+      <mgl-map
+        [style]="'mapbox://styles/ito-mapbox/ckrdglh551sjc17mvai4xe5a9'"
+        [fitBounds]="bounds"
+        [fitBoundsOptions]="{ padding: 50, duration: 0, maxZoom: 16 }"
+        [scrollZoom]="false"
+        class="corridor__map govuk-!-margin-bottom-7"
+      >
+        <mgl-geojson-source
+          *ngIf="corridorLine"
+          id="corridor-line"
+          promoteId="segmentId"
+          [data]="corridorLine"
+        ></mgl-geojson-source>
+        <mgl-geojson-source
+          *ngIf="corridorStops"
+          id="corridor-stops"
+          promoteId="stopId"
+          [data]="corridorStops"
+        ></mgl-geojson-source>
+        <mgl-layer
+          *ngIf="corridorLine"
+          id="corridor-line-layer"
+          type="line"
+          [paint]="{
+            'line-color': ['case', ['boolean', ['feature-state', 'selected'], selectAll], '#1d70b8', '#77a9d4'],
+            'line-width': 5
+          }"
+          [layout]="{
+            'line-cap': 'round',
+            'line-join': 'round'
+          }"
+          source="corridor-line"
+        ></mgl-layer>
+        <mgl-layer
+          *ngIf="corridorLine"
+          id="corridor-chevrons"
+          type="symbol"
+          [paint]="{
+            'icon-opacity': ['case', ['boolean', ['feature-state', 'selected'], selectAll], 1, 0]
+          }"
+          [layout]="{
+            'icon-image': 'map-chevron-large',
+            'symbol-placement': 'line',
+            'symbol-spacing': 200
+          }"
+          source="corridor-line"
+        ></mgl-layer>
+        <mgl-layer
+          *ngIf="corridorStops"
+          id="corridor-markers"
+          type="circle"
+          [paint]="{
+            'circle-color': '#ffffff',
+            'circle-radius': 6,
+            'circle-stroke-width': 4,
+            'circle-stroke-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#0b0c0c', '#B1B4B6']
+          }"
+          source="corridor-stops"
+          (layerMouseMove)="popupStop = mapEventStop($event); setMapHoverState(popupStop)"
+          (layerMouseLeave)="clearMapHoverState(popupStop); popupStop = undefined"
+        ></mgl-layer>
+        <mgl-popup
+          *ngIf="popupStop"
+          [lngLat]="popupStop"
+          [closeButton]="false"
+          [closeOnClick]="false"
+          maxWidth="200"
+          [offset]="12"
+          className="gds-popup"
+        >
+          <div class="govuk-body-small govuk-!-font-weight-bold govuk-!-margin-bottom-1">
+            {{ popupStop?.stopName }}
+          </div>
+          <div class="govuk-body-small">{{ popupStop?.naptan }}</div>
+        </mgl-popup>
+        <mgl-control mglNavigation></mgl-control>
+      </mgl-map>
+      <app-box spaceBelow="7">
+        <div class="corridor__journey-time">
+          <h2 class="govuk-!-margin-top-0 govuk-!-margin-bottom-4">Journey time</h2>
+          <app-tabs>
+            <app-tab tabTitle="Timeline">
+              <app-journey-time-chart
+                *appTabContent
+                [data]="stats?.journeyTimeStats"
+                [loading]="loadingStats"
+                [noData]="!loadingStats && !stats?.journeyTimeStats?.length"
+                [params]="params"
+                variant="date"
+              ></app-journey-time-chart>
+            </app-tab>
+            <app-tab tabTitle="Time of day">
+              <app-journey-time-chart
+                *appTabContent
+                [data]="stats?.journeyTimeTimeOfDayStats"
+                [loading]="loadingStats"
+                [noData]="!loadingStats && !stats?.journeyTimeStats?.length"
+                [params]="params"
+                variant="category"
+                labelStyle="bin"
+                categoryFormatter="hours"
+                [show75PercentileInTooltip]="false"
+              ></app-journey-time-chart>
+            </app-tab>
+            <app-tab tabTitle="Day of week">
+              <app-journey-time-chart
+                *appTabContent
+                [data]="stats?.journeyTimeDayOfWeekStats"
+                [loading]="loadingStats"
+                [noData]="!loadingStats && !stats?.journeyTimeStats?.length"
+                [params]="params"
+                [centerAxis]="true"
+                variant="category"
+              ></app-journey-time-chart>
+            </app-tab>
+            <app-tab tabTitle="Distribution">
+              <app-journey-time-chart
+                *appTabContent
+                [data]="stats?.journeyTimeHistogram"
+                [loading]="loadingStats"
+                [noData]="!loadingStats && !stats?.journeyTimeStats?.length"
+                dataField="journeyTime"
+                variant="histogram"
+                labelStyle="bin"
+              ></app-journey-time-chart>
+            </app-tab>
+          </app-tabs>
+        </div>
+      </app-box>
+      <h2>Services</h2>
+      <div class="corridor__services">
+        <ag-grid-angular
+          appAgGrid
+          class="ag-theme-compact ag-theme-wrapped-header"
+          [rowData]="stats?.journeyTimePerServiceStats"
+          [columnDefs]="columnDefs"
+          [defaultColDef]="defaultColumnDef"
+          [gridOptions]="gridOptions"
+          (gridReady)="onGridReady($event)"
+          (columnResized)="gridHeaderHeightSetter()"
+        ></ag-grid-angular>
+      </div>
+    </div>
+    <ng-template #error>
+      <app-page-header
+        caption="Corridors"
+        [heading]="errorHeading ? errorHeading : 'Error'"
+        spaceAbove="2"
+      ></app-page-header>
+      <p class="govuk-body">{{ errorMessage }} Go back to <a [routerLink]="['/corridors']">All corridors</a>?</p>
+    </ng-template>
+    <ng-template #skeletonHeader>
+      <div><span class="govuk-caption-xl govuk-!-margin-bottom-0">Corridors</span></div>
+      <app-skeleton appearance="heading-xl" width="300px" spaceAbove="2"></app-skeleton>
+    </ng-template>
+  </ng-container>
+</app-page>

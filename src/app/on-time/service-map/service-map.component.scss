@@ -1,0 +1,64 @@
+@import 'src/assets/styles/settings/settings';
+@import 'src/assets/styles/helpers/helpers';
+
+@mixin square($size) {
+  width: $size;
+  height: $size;
+}
+
+mgl-map {
+  height: 440px; //this requires a specific size set rather than the usual 100%
+}
+
+.map {
+  &__legend {
+    @include govuk-font(14);
+    background-color: #ffffff;
+    padding: govuk-spacing(1);
+    display: grid;
+    align-items: center;
+    justify-items: center;
+
+    &--otp {
+      grid-template-columns: repeat(5, auto);
+      grid-template-rows: repeat(2, auto);
+      grid-template-areas:
+        '. . . . .'
+        'early . ontime . late';
+    }
+
+    &--delay {
+      grid-template-columns: repeat(6, auto);
+      grid-template-rows: auto;
+    }
+  }
+  &__legend-item {
+    margin: 0 - (govuk-spacing(1));
+  }
+  &__legend-hint,
+  &__popup-hint {
+    color: #626a6e;
+  }
+  &__dot {
+    border-radius: 100%;
+    margin: govuk-spacing(1);
+    &--1 {
+      @include square(16px);
+    }
+    &--2 {
+      @include square(22px);
+    }
+    &--3 {
+      @include square(35px);
+    }
+    &--early {
+      background-color: raas-colour('early');
+    }
+    &--on-time {
+      background-color: raas-colour('on-time');
+    }
+    &--late {
+      background-color: raas-colour('late');
+    }
+  }
+}

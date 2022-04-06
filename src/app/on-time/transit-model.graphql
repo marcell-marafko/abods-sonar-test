@@ -1,0 +1,22 @@
+query transitModelServicePatternStops($nocCode: String!, $lineId: String!) {
+  operator(nocCode: $nocCode) {
+    transitModel {
+      lines(filterBy: { lineIds: [$lineId] }) {
+        items {
+          lineId
+          lineName
+          servicePatterns {
+            servicePatternId
+            name
+            stops {
+              stopId
+              stopName
+              lon
+              lat
+            }
+          }
+        }
+      }
+    }
+  }
+}

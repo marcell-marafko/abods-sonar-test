@@ -1,0 +1,12 @@
+<div
+  class="panel"
+  appTrapFocus
+  [ngClass]="{ 'panel--open': this.isOpen }"
+  id="panel"
+  (clickOutside)="this.panelClickOutside($event)"
+>
+  <div class="panel__close-wrapper">
+    <button #closeButton class="panel__close-btn button-link" (click)="this.close()" tabIndex="0">Close</button>
+  </div>
+  <ng-content></ng-content>
+</div>

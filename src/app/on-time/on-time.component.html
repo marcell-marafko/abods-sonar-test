@@ -1,0 +1,210 @@
+<app-page *ngIf="!operatorNotFound && !(lineId && lineNotFound); else operatorOrLineNotFound">
+  <ng-container ngProjectAs="back-link" *ngIf="nocCode && !lineId && !singleOperator">
+    <gds-back-link label="All operators" [route]="['.']"></gds-back-link>
+  </ng-container>
+  <ng-container ngProjectAs="back-link" *ngIf="nocCode && lineId">
+    <gds-back-link
+      label="All services"
+      [route]="[nocCode]"
+      [queryParams]="{ tab: null }"
+      queryParamsHandling="merge"
+    ></gds-back-link>
+  </ng-container>
+  <ng-container ngProjectAs="content">
+    <app-page-header
+      *ngIf="!lineId || service; else skeleton"
+      [heading]="lineId ? service?.serviceNumber + ' - ' + service?.serviceName : 'All services'"
+      caption="On-time performance"
+      spaceAbove="2"
+      [spaceBelow]="!nocCode ? '6' : '2'"
+    ></app-page-header>
+    <ng-template #skeleton>
+      <app-skeleton appearance="caption-l" width="300px" spaceAbove="2" spaceBelow="2"></app-skeleton>
+    </ng-template>
+    <div class="on-time__filter-row">
+      <div>
+        <div [ngClass]="{ 'on-time__operator': nocCode }">
+          <app-operator-selector
+            *ngIf="nocCode && !lineId"
+            [allOperators]="allOperators"
+            [operator]="operator"
+            (operatorChange)="changeOperator($event)"
+            spaceBelow="4"
+          >
+          </app-operator-selector>
+          <span *ngIf="lineId" class="govuk-caption-l">{{ operator?.name }} ({{ operator?.nocCode }})</span>
+        </div>
+        <div class="on-time__date-picker">
+          <app-date-range [formControl]="dateRange"></app-date-range>
+        </div>
+      </div>
+      <div class="on-time__filters">
+        <div>
+          <button
+            class="on-time__more-filters button-link govuk-link"
+            [attr.aria-expanded]="filterPanel?.isOpen ? filterPanel?.isOpen : 'false'"
+            aria-controls="panel"
+            id="panel-toggle"
+            (click)="filterPanel?.toggle()"
+          >
+            <svg-icon class="on-time__filter-icon" src="assets/icons/filter.svg" [applyClass]="true"></svg-icon
+            ><span *ngIf="filtersCount$ | async as count; else moreFilters">Filters ({{ count }})</span>
+            <ng-template #moreFilters>More filters</ng-template>
+          </button>
+          <app-panel (closing)="resetFilters()">
+            <app-filters
+              [filters]="filtersSubject | async"
+              (filtersChange)="updateFilters($event)"
+              (closeFilters)="filterPanel?.close()"
+            ></app-filters>
+          </app-panel>
+        </div>
+        <div class="on-time__timing-toggle">
+          <app-segmented-toggle legend="Show performance using data from">
+            <app-segmented-toggle-item
+              name="stops-filter"
+              identifier="all-stops"
+              value="all-stops"
+              label="All stops"
+              [selected]="timingPointsOption === TimingPointsOption.AllStops"
+              (selectedChange)="timingPointsOption = TimingPointsOption.AllStops"
+            ></app-segmented-toggle-item>
+            <app-segmented-toggle-item
+              name="stops-filter"
+              identifier="timing-points"
+              value="timing-points"
+              label="Timing points"
+              [selected]="timingPointsOption === TimingPointsOption.TimingPointsOnly"
+              (selectedChange)="timingPointsOption = TimingPointsOption.TimingPointsOnly"
+            ></app-segmented-toggle-item>
+          </app-segmented-toggle>
+        </div>
+      </div>
+    </div>
+    <app-box *ngIf="nocCode" [padding]="['6', '5', '6', '5']" spaceAbove="4" spaceBelow="8">
+      <app-tabs (tabChanged)="tabChanged($event)">
+        <app-tab #mapTab tabTitle="Map" *ngIf="lineId" id="map">
+          <div class="on-time__wrapper" *appTabContent>
+            <app-service-map [params]="params$ | async"></app-service-map>
+          </div>
+        </app-tab>
+        <app-tab tabTitle="Timeline" id="timeline">
+          <div *appTabContent class="on-time__wrapper">
+            <app-chart-no-data-wrapper
+              *ngIf="!lineId || overviewMode === 'on-time-performance'"
+              [noData]="noData"
+              [dataExpected]="dataExpected"
+              class="on-time__otp-chart-wrapper"
+            >
+              <app-on-time-time-series-chart
+                class="on-time__otp-chart"
+                [params]="params$ | async"
+              ></app-on-time-time-series-chart>
+            </app-chart-no-data-wrapper>
+            <app-chart-no-data-wrapper
+              *ngIf="lineId && overviewMode === 'excess-wait-time'"
+              class="on-time__ewt-chart"
+              [noData]="timingPointsOnly"
+              [timingPointsNotSupported]="timingPointsOnly"
+            >
+              <app-excess-wait-time-chart
+                class="on-time__ewt-chart"
+                [params]="params$ | async"
+              ></app-excess-wait-time-chart>
+            </app-chart-no-data-wrapper>
+            <div
+              class="on-time__chart-footer"
+              *ngIf="lineId && !frequentServiceInfoLoading && (frequentServiceInfo?.numHours || 0) > 0"
+            >
+              <div class="on-time__service-info" *ngIf="overviewMode === 'excess-wait-time'">
+                {{ frequentServiceInfo?.numHours }} hours out of a total {{ frequentServiceInfo?.totalHours }} service
+                hours during the selected period operated on a frequent service basis. Excess Waiting Time is averaged
+                over the period in which the service is running on a frequent basis.
+              </div>
+              <div class="on-time__mode-select">
+                <label class="govuk-label on-time__mode-label" for="overviewMode">Show:</label>
+                <select
+                  class="govuk-select"
+                  id="overviewMode"
+                  name="overviewMode"
+                  [ngModel]="overviewMode"
+                  (ngModelChange)="overviewModeChanged($event)"
+                >
+                  <option ngValue="on-time-performance">On-time performance</option>
+                  <option ngValue="excess-wait-time">Excess waiting time</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </app-tab>
+        <app-tab tabTitle="Distribution" id="distribution">
+          <div class="on-time__wrapper">
+            <app-chart-no-data-wrapper *appTabContent [noData]="noData" [dataExpected]="dataExpected">
+              <app-delay-frequency-chart
+                class="on-time__dist-chart"
+                [params]="params$ | async"
+              ></app-delay-frequency-chart>
+            </app-chart-no-data-wrapper>
+          </div>
+        </app-tab>
+        <app-tab tabTitle="Time of day" id="time-of-day">
+          <div class="on-time__wrapper">
+            <app-chart-no-data-wrapper *appTabContent [noData]="noData" [dataExpected]="dataExpected">
+              <app-time-of-day-chart class="on-time__tod-chart" [params]="params$ | async"></app-time-of-day-chart>
+            </app-chart-no-data-wrapper>
+          </div>
+        </app-tab>
+        <app-tab tabTitle="Day of week" id="day-of-week">
+          <div class="on-time__wrapper">
+            <app-chart-no-data-wrapper *appTabContent [noData]="noData" [dataExpected]="dataExpected">
+              <app-day-of-week-chart class="on-time__dow-chart" [params]="params$ | async"></app-day-of-week-chart>
+            </app-chart-no-data-wrapper>
+          </div>
+        </app-tab>
+      </app-tabs>
+    </app-box>
+    <app-overview-stats
+      [showTotal]="!nocCode"
+      [overview]="overview"
+      [frequent]="(frequentServiceInfo?.numHours || 0) > 0"
+      [headwayOverview]="headwayOverview"
+      [loading]="overviewLoading"
+    ></app-overview-stats>
+    <router-outlet></router-outlet>
+  </ng-container>
+</app-page>
+
+<ng-template #operatorOrLineNotFound>
+  <app-page *ngIf="operatorNotFound; else lineNotFound">
+    <ng-container ngProjectAs="back-link">
+      <gds-back-link [route]="['/on-time']" label="On-time performance"></gds-back-link>
+    </ng-container>
+    <ng-container ngProjectAs="content">
+      <app-page-header caption="Feed monitoring" heading="Not found"></app-page-header>
+      <p class="govuk-body">
+        Operator <b> {{ nocCode }} </b> not found, or you do not have permission to view. Go back to
+        <a [routerLink]="['/on-time']">On-time performance</a>?
+      </p>
+    </ng-container>
+  </app-page>
+
+  <ng-template #lineNotFound>
+    <app-page>
+      <ng-container ngProjectAs="back-link">
+        <gds-back-link
+          [route]="['/on-time', nocCode || '']"
+          [queryParams]="{ tab: null }"
+          queryParamsHandling="merge"
+          label="All services"
+        ></gds-back-link>
+      </ng-container>
+      <ng-container ngProjectAs="content">
+        <app-page-header caption="Feed monitoring" heading="Not found"></app-page-header>
+        <p class="govuk-body">
+          Service <b> {{ lineId }} </b> not found, or you do not have permission to view. Go back to
+          <a [routerLink]="['/on-time', nocCode]">operator</a>?
+        </p>
+      </ng-container>
+    </app-page>
+  </ng-template>
+</ng-template>

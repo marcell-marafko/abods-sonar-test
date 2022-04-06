@@ -1,0 +1,36 @@
+<div class="date-range-controls__calendar-day-names">
+  <span
+    *ngFor="let name of dayNames; let i = index"
+    class="date-range-controls__day-name"
+    [ngClass]="{ 'date-range-controls__day--saturday': i === 5 }"
+    >{{ name }}</span
+  >
+</div>
+<div class="date-range-controls__calendar-days">
+  <span
+    *ngFor="let _ of leadingBlanks; let i = index"
+    class="date-range-controls__day date-range-controls__day--disabled date-range-controls__day--invisible"
+    [ngClass]="{ 'date-range-controls__day--saturday': i === 5 }"
+  ></span>
+  <span
+    tabindex="0"
+    role="button"
+    class="date-range-controls__day"
+    *ngFor="let day of days; let i = index"
+    [attr.aria-pressed]="selectedInterval?.contains(day.date)"
+    [ngClass]="{
+      'date-range-controls__day': true,
+      'date-range-controls__day--today': day.isToday,
+      'date-range-controls__day--selected': day.isSelected,
+      'date-range-controls__day--disabled': !day.isSelectable,
+      'date-range-controls__day--invisible': !day.isVisible,
+      'date-range-controls__day--saturday': day.isSaturday,
+      'date-range-controls__day--included': selectedInterval?.contains(day.date),
+      'date-range-controls__day--start': _selected?.start?.hasSame(day.date, 'day'),
+      'date-range-controls__day--end': _selected?.end?.hasSame(day.date, 'day')
+    }"
+    (click)="dateChange.emit(day.date)"
+  >
+    {{ day.date.day }}
+  </span>
+</div>

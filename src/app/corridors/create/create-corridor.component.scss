@@ -1,0 +1,118 @@
+@import 'src/assets/styles/settings/settings';
+@import 'src/assets/styles/helpers/helpers';
+
+mgl-map {
+  height: 400px;
+  width: 400px;
+  max-width: 100%;
+  position: sticky;
+  top: govuk-spacing(8);
+
+  @include bp($tablet) {
+    height: 360px;
+    width: 360px;
+  }
+  @include bp($lg-desktop) {
+    height: 540px;
+    width: 540px;
+  }
+}
+
+.create-corridor {
+  &__stops-layout {
+    display: flex;
+    flex-direction: column;
+    @include bp($tablet) {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+  &__form-column {
+    flex: 1;
+  }
+  &__map-column {
+    flex-shrink: 0;
+  }
+  &__scroll-list {
+    min-height: 407px;
+  }
+  &__stop {
+    height: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: govuk-spacing(3) govuk-spacing(1) govuk-spacing(3) govuk-spacing(2);
+
+    &--matching {
+      box-shadow: inset 0px -2px 0px $govuk-border-colour;
+      padding-left: govuk-spacing(1);
+    }
+
+    &--added {
+      background-color: govuk-colour('light-grey');
+      position: relative;
+    }
+    //adds blue line linking the stops
+    &--connected {
+      &:before {
+        content: '';
+        position: absolute;
+        display: block;
+        border-left: 5px solid govuk-colour('blue');
+        left: govuk-spacing(4);
+        top: 32px;
+        height: 100%;
+        z-index: $z-content + 1;
+      }
+    }
+
+    &:hover,
+    &--added {
+      .create-corridor__stop-details:before {
+        border-color: govuk-colour('black');
+      }
+    }
+  }
+
+  &__stop-details {
+    @include govuk-font(19);
+    display: inline-block;
+    position: relative;
+    padding: govuk-spacing(1) govuk-spacing(4) govuk-spacing(1) govuk-spacing(8);
+    display: flex;
+    flex-wrap: wrap;
+    &:before {
+      content: '';
+      position: absolute;
+      left: 0;
+      width: 25px;
+      height: 25px;
+      border: 4px solid govuk-colour('mid-grey');
+      background-color: govuk-colour('white');
+      border-radius: 50%;
+      box-sizing: border-box;
+      z-index: $z-content + 2;
+    }
+
+    &--no-graphic {
+      padding-left: 0;
+      &:before {
+        content: none;
+      }
+    }
+  }
+  &__stop-label {
+    display: inline-block;
+    margin-right: govuk-spacing(2);
+  }
+  &__naptan {
+    color: govuk-colour('dark-grey');
+  }
+  &__remove {
+    @include govuk-font(19);
+  }
+
+  &__no-stops {
+    margin-top: govuk-spacing(1);
+  }
+}

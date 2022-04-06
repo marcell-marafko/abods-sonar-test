@@ -1,0 +1,49 @@
+<div
+  id="navigation"
+  class="nav"
+  [ngClass]="{ 'nav--open': navService.isOpen }"
+  (clickOutside)="navService.navClickOutside($event)"
+  [attachOutsideOnClick]="!navService.isOpen"
+>
+  <nav class="nav__block" id="nav">
+    <ul class="govuk-list nav__list">
+      <li class="nav__item">
+        <a
+          class="nav__link"
+          [routerLink]="['/dashboard']"
+          routerLinkActive="nav__link--current"
+          (click)="navService.closeMenu()"
+          >Dashboard
+        </a>
+      </li>
+      <li class="nav__item">
+        <a
+          class="nav__link"
+          [routerLink]="['/feed-monitoring']"
+          routerLinkActive="nav__link--current"
+          (click)="navService.closeMenu()"
+          >Feed monitoring
+        </a>
+      </li>
+      <li class="nav__item">
+        <a
+          class="nav__link"
+          [routerLink]="['/on-time']"
+          routerLinkActive="nav__link--current"
+          (click)="navService.closeMenu()"
+          >On-time performance
+        </a>
+      </li>
+      <li class="nav__item">
+        <a
+          class="nav__link"
+          [routerLink]="['/corridors']"
+          routerLinkActive="nav__link--current"
+          (click)="navService.closeMenu()"
+          >Corridors
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <app-user-account></app-user-account>
+</div>

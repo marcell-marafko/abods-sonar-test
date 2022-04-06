@@ -1,0 +1,21 @@
+@import 'src/assets/styles/settings/settings';
+@import 'src/assets/styles/helpers/helpers.scss';
+
+.operator-selector {
+  display: flex;
+  align-items: center;
+
+  &__label {
+    display: inline-block;
+    padding-right: 5px;
+  }
+
+  .operator-select {
+    .ng-dropdown-panel {
+      min-width: 400px;
+      .ng-option {
+        white-space: normal;
+      }
+    }
+  }
+}

@@ -1,0 +1,220 @@
+<app-page>
+  <ng-container ngProjectAs="back-link">
+    <gds-back-link label="All corridors" [route]="['/corridors']"></gds-back-link>
+  </ng-container>
+  <ng-container ngProjectAs="content">
+    <form [formGroup]="corridorForm" (ngSubmit)="submit()">
+      <app-page-header caption="Corridors" heading="Create new corridor"></app-page-header>
+      <gds-error-summary [errors]="createError"></gds-error-summary>
+      <gds-text-input
+        formControlName="name"
+        inputId="corridor-name"
+        type="text"
+        label="Enter a corridor name"
+        width="20"
+        [error]="
+          submitted && name.errors?.required
+            ? 'Name is required'
+            : submitted && name.errors?.maxlength
+            ? 'Maximum length 256 characters'
+            : undefined
+        "
+      ></gds-text-input>
+      <h2 class="govuk-!-margin-bottom-2">Stops</h2>
+      <div class="create-corridor__stops-layout">
+        <div class="govuk-!-margin-right-6 create-corridor__form-column">
+          <div
+            class="create-corridor__stop create-corridor__stop--added"
+            [ngClass]="{ 'create-corridor__stop--connected': !isLast }"
+            *ngFor="let stop of stopList; let isLast = last"
+          >
+            <div class="create-corridor__stop-details">
+              <span class="create-corridor__stop-label">{{ stop.stopName }}</span
+              ><span class="create-corridor__naptan">{{ stop.naptan }}</span>
+            </div>
+            <div *ngIf="isLast">
+              <button type="button" class="create-corridor__remove button-link" (click)="removeLastStop()">
+                Remove
+              </button>
+            </div>
+          </div>
+
+          <gds-text-input
+            *ngIf="stopList.length === 0"
+            formControlName="stopQuery"
+            inputId="stop-query"
+            type="text"
+            label="Search for the first stop in the corridor"
+            width="20"
+          ></gds-text-input>
+
+          <ng-container *ngIf="loading">
+            <h3 class="govuk-!-margin-top-6 govuk-!-margin-bottom-2">Searching for stops...</h3>
+            <div class="flex-row justify-content-center govuk-!-margin-6">
+              <app-spinner></app-spinner>
+            </div>
+          </ng-container>
+
+          <h3
+            *ngIf="matchingStops?.features?.length && !loading"
+            [ngSwitch]="stopList.length"
+            class="govuk-!-margin-top-6 govuk-!-margin-bottom-2"
+          >
+            <span *ngSwitchCase="0">Showing {{ matchingStops?.features?.length }} matching stops</span>
+            <span *ngSwitchDefault>Add further stops</span>
+          </h3>
+
+          <div *ngIf="noData" [ngSwitch]="stopList.length">
+            <div class="create-corridor__no-stops" *ngSwitchCase="0">No stops matched the search query</div>
+            <div class="create-corridor__no-stops" *ngSwitchDefault>No further stops available</div>
+          </div>
+
+          <ng-container>
+            <cdk-virtual-scroll-viewport itemSize="80" class="create-corridor__scroll-list">
+              <div 
+                class="create-corridor__stop create-corridor__stop--matching"
+                *cdkVirtualFor="let stop of matchingStops?.features"
+                (mouseover)="setHoverState(stop)"
+                (mouseleave)="clearHoverState(stop)"
+              >
+                <div class="create-corridor__stop-details create-corridor__stop-details--no-graphic">
+                  <span class="create-corridor__stop-label">{{ stop.properties?.stopName }}</span
+                  ><span class="create-corridor__naptan">{{ stop.properties?.naptan }}</span>
+                </div>
+                <div>
+                  <gds-button
+                    [text]="stopList.length ? 'Add' : 'Select'"
+                    appearance="secondary"
+                    spaceBelow="0"
+                    (click)="addStop(stop.properties)"
+                  ></gds-button>
+                </div>
+              </div>
+            </cdk-virtual-scroll-viewport>
+          </ng-container>
+          <div *ngIf="matchingStops || corridorStops" class="flex-row justify-content-between govuk-!-margin-top-6">
+            <gds-button text="Cancel" appearance="secondary" routerLink="../"></gds-button>
+            <gds-button *ngIf="corridorStops && stopList.length > 1" type="submit" text="Finish"></gds-button>
+          </div>
+        </div>
+        <div class="create-corridor__map-column">
+          <mgl-map
+            [style]="'mapbox://styles/ito-mapbox/ckrdglh551sjc17mvai4xe5a9'"
+            [scrollZoom]="false"
+            [fitBounds]="bounds"
+            [fitBoundsOptions]="{ padding: 50, maxZoom: 16 }"
+          >
+            <mgl-geojson-source *ngIf="matchingStops" id="matching-stops" [data]="matchingStops"></mgl-geojson-source>
+            <mgl-geojson-source
+              *ngIf="matchingStopLines"
+              id="matching-stop-lines"
+              [data]="matchingStopLines"
+            ></mgl-geojson-source>
+            <mgl-geojson-source *ngIf="corridorStops" id="corridor-stops" [data]="corridorStops"></mgl-geojson-source>
+            <mgl-geojson-source *ngIf="corridorLine" id="corridor-line" [data]="corridorLine"></mgl-geojson-source>
+            <mgl-layer
+              *ngIf="matchingStops"
+              id="matching-stop-markers"
+              type="circle"
+              [paint]="{
+                'circle-color': '#ffffff',
+                'circle-radius': 6,
+                'circle-stroke-width': 4,
+                'circle-stroke-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#0b0c0c', '#B1B4B6']
+              }"
+              source="matching-stops"
+              [before]="corridorStops ? 'corridor-markers' : undefined"
+              (layerMouseMove)="setPopup($event)"
+              (layerMouseLeave)="clearPopup()"
+            ></mgl-layer>
+            <mgl-layer
+              *ngIf="matchingStopLines"
+              id="matching-stop-lines-layer"
+              type="line"
+              [paint]="{
+                'line-color': '#1d70b8',
+                'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 5, 0]
+              }"
+              [layout]="{
+                'line-cap': 'round',
+                'line-join': 'round'
+              }"
+              source="matching-stop-lines"
+              [before]="matchingStops ? 'matching-stop-markers' : undefined"
+            >
+            </mgl-layer>
+            <mgl-layer
+              *ngIf="matchingStopLines"
+              id="matching-stop-chevrons"
+              type="symbol"
+              [paint]="{
+                'icon-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0]
+              }"
+              [layout]="{
+                'icon-image': 'map-chevron-large',
+                'symbol-placement': 'line',
+                'symbol-spacing': 200
+              }"
+              source="matching-stop-lines"
+            ></mgl-layer>
+            <mgl-layer
+              *ngIf="corridorStops"
+              id="corridor-markers"
+              type="circle"
+              [paint]="{
+                'circle-color': '#ffffff',
+                'circle-radius': 6,
+                'circle-stroke-width': 4,
+                'circle-stroke-color': '#0b0c0c'
+              }"
+              source="corridor-stops"
+              (layerMouseMove)="setPopup($event)"
+              (layerMouseLeave)="clearPopup()"
+            ></mgl-layer>
+            <mgl-layer
+              *ngIf="corridorLine"
+              id="corridor-line-layer"
+              type="line"
+              [paint]="{
+                'line-color': '#1d70b8',
+                'line-width': 5
+              }"
+              [layout]="{
+                'line-cap': 'round',
+                'line-join': 'round'
+              }"
+              source="corridor-line"
+              [before]="corridorStops ? 'corridor-markers' : undefined"
+            ></mgl-layer>
+            <mgl-layer
+              *ngIf="corridorLine"
+              id="corridor-chevrons"
+              type="symbol"
+              [layout]="{
+                'icon-image': 'map-chevron-large',
+                'symbol-placement': 'line',
+                'symbol-spacing': 200
+              }"
+              source="corridor-line"
+            ></mgl-layer>
+            <mgl-popup
+              *ngIf="popupStop"
+              [lngLat]="popupStop"
+              [closeButton]="false"
+              [closeOnClick]="false"
+              maxWidth="200"
+              [offset]="12"
+              className="gds-popup"
+            >
+              <div class="govuk-body-small govuk-!-font-weight-bold govuk-!-margin-bottom-1">
+                {{ popupStop?.stopName }}
+              </div>
+              <div class="govuk-body-small">{{ popupStop?.naptan }}</div>
+            </mgl-popup>
+            <mgl-control mglNavigation></mgl-control>
+          </mgl-map>
+        </div>
+      </div>
+    </form>
+  </ng-container>
+</app-page>

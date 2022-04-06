@@ -1,0 +1,96 @@
+@import 'src/assets/styles/settings/settings';
+@import 'src/assets/styles/helpers/helpers.scss';
+
+@include bp($to-tablet) {
+  .nav {
+    padding-left: $window-padding-small-screen;
+    &--open {
+      left: $window-padding-small-screen * -1;
+    }
+  }
+}
+
+@include bp($tablet-only) {
+  .nav {
+    padding-left: $window-padding-large-screen;
+    &--open {
+      left: $window-padding-large-screen * -1;
+    }
+  }
+}
+
+@include bp($to-desktop) {
+  .nav {
+    display: none;
+    position: absolute;
+    &--open {
+      display: block;
+    }
+  }
+}
+
+@include bp($desktop) {
+  .nav {
+    display: block;
+    position: relative;
+  }
+}
+
+.nav {
+  flex: 0 0 auto;
+  height: 100%;
+  border-right: 1px solid $govuk-border-colour;
+  width: 200px;
+  box-sizing: content-box;
+  padding-right: govuk-spacing(4);
+  margin-right: govuk-spacing(6);
+  background-color: govuk-colour('white');
+  z-index: $z-menu;
+
+  &__block {
+    position: sticky;
+    top: 0;
+    padding-top: govuk-spacing(7);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  &__item {
+    text-decoration: none;
+    box-sizing: border-box;
+  }
+
+  &__link {
+    display: block;
+    color: $govuk-link-colour;
+    text-decoration: none;
+    padding-top: govuk-spacing(1);
+    padding-bottom: govuk-spacing(1);
+    padding-left: 13px;
+
+    &--current {
+      font-weight: $govuk-font-weight-bold;
+      position: relative;
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: $govuk-link-colour;
+      }
+    }
+
+    &:hover:not(:focus) {
+      text-decoration: underline;
+    }
+
+    &:focus {
+      outline: 0;
+      color: govuk-colour('black');
+      background-color: govuk-colour('yellow');
+      box-shadow: 0 4px govuk-colour('black');
+    }
+  }
+}

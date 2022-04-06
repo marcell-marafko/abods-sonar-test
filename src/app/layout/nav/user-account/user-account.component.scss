@@ -1,0 +1,37 @@
+@import 'src/assets/styles/settings/settings';
+@import 'src/assets/styles/helpers/helpers.scss';
+
+$button-padding: 10px;
+
+@function user-account-button-height($style, $breakpoint: null) {
+  @if map-has-key($govuk-typography-scale, $style) {
+    $style-group: map-get($govuk-typography-scale, $style);
+    @if map-has-key($style-group, $breakpoint) {
+      $breakpoint-group: map-get($style-group, $breakpoint);
+      @if map-has-key($breakpoint-group, 'line-height') {
+        @return map-get($breakpoint-group, 'line-height');
+      }
+    }
+  }
+}
+
+:host {
+  position: sticky;
+  top: calc(100vh - #{govuk-spacing(4)} - #{user-account-button-height(19)} - #{$button-padding});
+  display: block;
+  margin-top: govuk-spacing(4);
+  margin-bottom: govuk-spacing(4);
+  @include govuk-font(19);
+
+  .js-nav-open &,
+  .js-panel-open & {
+    position: fixed; //Fixes DRA-951 issue with repositioning of the 'My account' menu item in Firefox when the nav panes are open. Issue is caused by 'position:fixed' that's added to the body to disable scrolling when the nav panes are open. We add position: fixed, rather than overflow:hidden as we'd like the scrollbars to remain (but disabled) otherwise content moves on the page as we open/close the mobile nav or filters pane.
+    margin-top: 0;
+  }
+}
+
+@include bp($tablet) {
+  :host {
+    top: calc(100vh - #{govuk-spacing(4)} - #{user-account-button-height(19, tablet)} - #{$button-padding});
+  }
+}

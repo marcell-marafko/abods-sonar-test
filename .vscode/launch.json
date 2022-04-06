@@ -1,0 +1,16 @@
+{
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "Unit tests",
+      "address": "localhost",
+      "port": 9333,
+      "sourceMaps": true,
+      "webRoot": "${workspaceFolder}",
+      "pathMapping": {
+        "/_karma_webpack_": "${workspaceFolder}"
+      }
+    }
+  ]
+}

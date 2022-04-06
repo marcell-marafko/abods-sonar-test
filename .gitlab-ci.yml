@@ -1,0 +1,154 @@
+# Base scripts
+.base-image:
+  image: trion/ng-cli-karma:11.0.4
+  interruptible: true
+
+.install-packages: &install-packages # Installing global dependencies:
+  - apt-get update && apt-get install -y git
+  - npm i -g @angular/cli
+
+.npm-install: &npm-install # In order to re-write version.js, we need unsafe-perm.
+  - npm install --unsafe-perm; npm rebuild;
+
+.npm-test: &npm-test
+  - ng test --watch=false
+
+.npm-build: &npm-build
+  - ng build
+
+.npm-build-prod: &npm-build-prod
+  - ng build --prod
+
+.install-packages-publish: &install-packages-publish
+  - apk add --update --no-cache curl jq python py-pip git
+  - pip install awscli
+  # will pick up secret keys set in GitLab UI
+  - $(aws ecr get-login --no-include-email --region eu-west-1)
+  - docker info
+
+# Build pipeline
+stages:
+  - test
+  - publish
+  - deploy
+
+test:latest:
+  stage: test
+  extends: .base-image
+  artifacts:
+    paths:
+      - dist/
+  cache:
+    paths:
+      - node_modules
+  before_script:
+    - *install-packages
+  script:
+    - *npm-install
+    - *npm-test
+    - *npm-build
+  only:
+    - pushes
+    - develop
+  except:
+    - tags
+    - master
+    - /^release/.*$/
+    - merge_requests
+
+test:production:
+  stage: test
+  extends: .base-image
+  artifacts:
+    paths:
+      - dist/
+  cache:
+    paths:
+      - node_modules
+  before_script:
+    - *install-packages
+  script:
+    - *npm-install
+    - *npm-test
+    - *npm-build-prod
+  only:
+    - tags
+    - master
+    - merge_requests
+    - /^release/.*$/
+
+publish:latest:
+  stage: publish
+  dependencies:
+    - test:latest
+  variables:
+    DOCKER_DRIVER: overlay2
+    LATEST_IMAGE: $REPOSITORY_URL:$CI_PIPELINE_ID
+    LATEST_TAG: $REPOSITORY_URL:latest
+    USE_DOCKER: 'yes'
+  image: docker:18
+  services:
+    - docker:18-dind
+  before_script:
+    - *install-packages-publish
+  script:
+    - docker build --tag $LATEST_IMAGE .
+    - docker push $LATEST_IMAGE
+    - docker tag $LATEST_IMAGE $LATEST_TAG
+    - docker push $LATEST_TAG
+  only:
+    - develop
+
+publish:staging:
+  stage: publish
+  dependencies:
+    - test:production
+  variables:
+    DOCKER_DRIVER: overlay2
+    STAGING_IMAGE: $REPOSITORY_URL:$CI_PIPELINE_ID
+    STAGING_TAG: $REPOSITORY_URL:staging
+    USE_DOCKER: 'yes'
+  image: docker:18
+  services:
+    - docker:18-dind
+  before_script:
+    - *install-packages-publish
+  script:
+    - docker build --tag $STAGING_IMAGE .
+    - docker push $STAGING_IMAGE
+    - docker tag $STAGING_IMAGE $STAGING_TAG
+    - docker push $STAGING_TAG
+  only:
+    - /^release/.*$/
+
+publish:production:
+  stage: publish
+  dependencies:
+    - test:production
+  variables:
+    DOCKER_DRIVER: overlay2
+    PROD_IMAGE: $REPOSITORY_URL:$CI_PIPELINE_ID
+    PROD_TAG: $REPOSITORY_URL:stable
+    USE_DOCKER: 'yes'
+  image: docker:18
+  services:
+    - docker:18-dind
+  before_script:
+    - *install-packages-publish
+  script:
+    - docker build --tag $PROD_IMAGE .
+    - docker push $PROD_IMAGE
+    - docker tag $PROD_IMAGE $PROD_TAG
+    - docker push $PROD_TAG
+  only:
+    - tags
+
+auto-deploy:
+  stage: deploy
+  trigger: deployment/abod
+  inherit:
+    variables: false
+  variables:
+    UPSTREAM_SERVICE: frontend
+    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+  allow_failure: true

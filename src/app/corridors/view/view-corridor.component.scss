@@ -1,0 +1,25 @@
+@import 'src/assets/styles/settings/settings';
+@import 'src/assets/styles/helpers/helpers';
+
+.corridor {
+  &__summary {
+    margin-top: govuk-spacing(6);
+    margin-bottom: govuk-spacing(7);
+    margin-left: -(govuk-spacing(3));
+    margin-right: -(govuk-spacing(3));
+    display: flex;
+  }
+  &__summary-stat {
+    border-top: 1px solid $govuk-border-colour;
+    padding-top: govuk-spacing(3);
+    flex: 1;
+    margin-left: govuk-spacing(3);
+    margin-right: govuk-spacing(3);
+  }
+  &__map {
+    height: 440px;
+  }
+  &__services {
+    min-height: 200px;
+  }
+}

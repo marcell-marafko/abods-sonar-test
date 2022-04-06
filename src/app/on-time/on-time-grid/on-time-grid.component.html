@@ -1,0 +1,98 @@
+<div class="on-time-grid">
+  <div *ngIf="!loading && !errored">
+    <div class="on-time-grid__controls">
+      <div class="on-time-grid__controls--filter">
+        <gds-text-input
+          *ngIf="showFilter"
+          [label]="'Search for a ' + noun"
+          name="filter"
+          inputId="on-time-grid-filter"
+          width="20"
+          [(ngModel)]="gridFilter"
+        ></gds-text-input>
+      </div>
+      <div class="on-time-grid__options">
+        <div>
+          <button class="button-link govuk-link" (click)="openDisplayOptions()">Display options</button>
+        </div>
+        <gds-radios size="small" layout="inline">
+          <gds-radio-item
+            label="Percentage"
+            name="show-percent"
+            inputId="on-time-grid-show-percent"
+            [(ngModel)]="mode"
+            [value]="'percent'"
+          ></gds-radio-item>
+          <gds-radio-item
+            label="Count"
+            name="show-count"
+            inputId="on-time-grid-show-count"
+            [(ngModel)]="mode"
+            [value]="'count'"
+          ></gds-radio-item>
+        </gds-radios>
+      </div>
+    </div>
+
+    <ag-grid-angular
+      appAgGrid
+      (agGridReady)="onTimeGridReady()"
+      class="ag-theme-compact ag-theme-wrapped-header"
+      [rowData]="data"
+      [pinnedTopRowData]="totalData"
+      [columnDefs]="columnDefs"
+      [gridOptions]="gridOptions"
+      [defaultColDef]="defaultColDef"
+      domLayout="autoHeight"
+      (gridReady)="gridReady$.next($event)"
+      (displayedColumnsChanged)="displayedColumnsChanged$.next($event)"
+      (columnResized)="headerHeightSetter()"
+      [pagination]="paginate"
+      [paginationPageSize]="10"
+      [suppressPaginationPanel]="true"
+      [quickFilterText]="gridFilter"
+      (filterChanged)="filterChanged($event)"
+      (paginationChanged)="paging.paginationChanged($event)"
+    >
+    </ag-grid-angular>
+    <div class="on-time-grid__footer">
+      <gds-button
+        type="button"
+        (click)="export()"
+        text="Export data"
+        appearance="secondary"
+        spaceBelow="0"
+        spaceAbove="2"
+        [disabled]="loading"
+      ></gds-button>
+      <app-paging-panel #paging [noun]="noun"></app-paging-panel>
+    </div>
+  </div>
+  <div class="on-time-grid--loading" *ngIf="loading">
+    <app-spinner [vCentre]="true" message="Loading..." size="default"> </app-spinner>
+  </div>
+  <div class="on-time-grid--errored" *ngIf="errored">
+    <div class="on-time-grid--error">
+      <svg-icon class="on-time-grid__icon" src="assets/icons/exclamation-in-circle.svg" [applyClass]="true"></svg-icon>
+      <span class="on-time-grid__message">There was an error loading the {{ noun }} data, please try again.</span>
+    </div>
+  </div>
+</div>
+
+<app-modal title="Display options" identifier="displayOptionsModal">
+  <form [formGroup]="displayOptionsForm" (submit)="saveDisplayOptions()">
+    <gds-checkboxes size="small" layout="2-column" legendSize="s" spaceBelow="8">
+      <gds-checkboxes-item
+        *ngFor="let column of columnDescriptions"
+        [formControlName]="column.colId"
+        [value]="column.colId"
+        [label]="column.title"
+      ></gds-checkboxes-item>
+    </gds-checkboxes>
+    <button class="button-link govuk-link" (click)="selectAllColumns()">Show all</button>
+    <div class="flex-row justify-content-between govuk-!-margin-top-2">
+      <gds-button text="Cancel" spaceBelow="0" appearance="secondary" (click)="closeDisplayOptions()"></gds-button>
+      <gds-button type="submit" text="Update" spaceBelow="0"></gds-button>
+    </div>
+  </form>
+</app-modal>

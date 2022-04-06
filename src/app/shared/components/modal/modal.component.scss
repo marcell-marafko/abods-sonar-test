@@ -1,0 +1,42 @@
+@import 'src/assets/styles/settings/settings';
+@import 'src/assets/styles/helpers/helpers.scss';
+
+//additional modal styling in lib/_ngx-smart-modal
+
+.modal {
+  &__header {
+    background-color: govuk-colour('black');
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  &__logo {
+    color: govuk-colour('white');
+    display: inline-block;
+  }
+  &__close {
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    padding: 3px;
+    &:focus {
+      background: $govuk-focus-colour;
+      .modal__close-icon {
+        color: govuk-colour('black');
+      }
+    }
+  }
+  &__close-icon {
+    color: govuk-colour('white');
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  &__content {
+    margin: 15px 15px 45px;
+  }
+}
