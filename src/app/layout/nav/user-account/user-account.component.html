@@ -1,4 +1,15 @@
 <div class="user-account">
+  <button
+    *ngIf="authenticatedUserIsOrgUser && authenticatedUserIsAdmin"
+    (click)="openModal()"
+    class="user-account__invite-button button-link"
+  >
+    <div>
+      <svg-icon src="assets/icons/plus.svg"> </svg-icon>
+    </div>
+    <span>Invite a new user</span>
+  </button>
+  <app-invite-user-modal [identifier]="'inviteUserFromNav'"></app-invite-user-modal>
   <app-popover
     position="right-end"
     identifier="user-account-menu"

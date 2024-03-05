@@ -6,7 +6,7 @@ import { BaseChart } from 'src/app/shared/components/amcharts/base-chart';
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_frozen from '@amcharts/amcharts4/themes/frozen';
-import { DateTime } from 'luxon';
+import { DateTime, Interval } from 'luxon';
 import { VehicleStatsViewModel } from '../../types';
 
 @Component({
@@ -16,7 +16,7 @@ import { VehicleStatsViewModel } from '../../types';
 })
 export class LiveVehicleStatsComponent extends BaseChart implements AfterViewInit, OnDestroy, OnChanges {
   private chartData: VehicleStatsViewModel[] = [];
-
+  private dateAxis?: am4charts.DateAxis;
   private patternedColumns: am4charts.DateAxisDataItem[] = [];
 
   @Input() nocCode?: string | null;
@@ -24,6 +24,7 @@ export class LiveVehicleStatsComponent extends BaseChart implements AfterViewIni
   @Input() label?: string;
   @Input() dataSource?: (VehicleStatsType | null | undefined)[];
   @Input() granularity?: Granularity;
+  @Input() interval?: Interval;
 
   constructor(chartService: ChartService) {
     super(am4themes_frozen, chartService);
@@ -52,6 +53,8 @@ export class LiveVehicleStatsComponent extends BaseChart implements AfterViewIni
         this.hideSpinner();
       }
     }
+
+    this.applyInterval();
   }
 
   ngAfterViewInit() {
@@ -68,16 +71,16 @@ export class LiveVehicleStatsComponent extends BaseChart implements AfterViewIni
   createPatternedColumns() {
     this.patternedColumns = this.chartData
       .filter(({ actual }) => actual === 0)
-      .map(({ dateTime }) => {
-        return this.createPatternedColumn(dateTime);
-      });
+      .map(({ dateTime }) => this.createPatternedColumn(dateTime));
   }
 
   createPatternedColumn(dateTime: DateTime) {
-    const dateAxis = this.chart?.xAxes.values[0] as am4charts.DateAxis;
+    if (!this.dateAxis) {
+      throw new Error('Chart not initialized'); // This should never happen
+    }
     const unit = this.granularity === Granularity.Minute ? 'minutes' : 'hours';
 
-    const column = dateAxis.axisRanges.create();
+    const column = this.dateAxis.axisRanges.create();
     column.date = dateTime.plus({ [unit]: 0.1 }).toJSDate();
     column.endDate = dateTime.plus({ [unit]: 0.9 }).toJSDate();
     column.grid.disabled = true;
@@ -97,7 +100,7 @@ export class LiveVehicleStatsComponent extends BaseChart implements AfterViewIni
     if (!this.chart) {
       return;
     }
-    const dateAxis = this.chart.xAxes.push(new am4charts.DateAxis());
+    const dateAxis = (this.dateAxis = this.chart.xAxes.push(new am4charts.DateAxis()));
     dateAxis.renderer.labels.template.fontSize = 13;
     dateAxis.renderer.labels.template.fill = this.chartService.colorMap.legendaryGrey;
     dateAxis.baseInterval = {
@@ -112,6 +115,15 @@ export class LiveVehicleStatsComponent extends BaseChart implements AfterViewIni
     dateAxis.renderer.grid.template.disabled = true;
     if (dateAxis.tooltip) {
       dateAxis.tooltip.disabled = true;
+    }
+    this.applyInterval();
+  }
+
+  applyInterval() {
+    // Interval ought to be set by the time the chart is initialized, but we can't guarantee that.
+    if (this.interval?.isValid && this.dateAxis) {
+      this.dateAxis.min = this.interval.start.toMillis();
+      this.dateAxis.max = this.interval.end.toMillis();
     }
   }
 

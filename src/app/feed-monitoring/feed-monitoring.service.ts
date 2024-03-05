@@ -17,7 +17,7 @@ import {
   OperatorSparklineStatsGQL,
   VehicleStatsType,
 } from 'src/generated/graphql';
-import { nonNullishArray } from '../on-time/transit-model.service';
+import { nonNullishArray } from '../shared/array-operators';
 
 export type EventStats = Pick<EventStatsType, 'count' | 'day'>;
 
@@ -35,11 +35,14 @@ export class FeedMonitoringService {
     private eventStatsQuery: EventStatsGQL
   ) {}
 
-  get listOperators(): Observable<{ nocCode: string; name?: string | null }[]> {
+  get listOperators(): Observable<{ nocCode: string; operatorId: string; name?: string | null }[]> {
     return this.operatorListQuery
       .fetch()
       .pipe(
-        map(({ data }) => data?.operators?.items?.map((x) => x as { nocCode: string; name?: string | null }) ?? [])
+        map(
+          ({ data }) =>
+            data?.operators?.items?.map((x) => x as { nocCode: string; operatorId: string; name?: string | null }) ?? []
+        )
       );
   }
 
@@ -58,16 +61,16 @@ export class FeedMonitoringService {
   }
 
   fetchOperatorSparklines(
-    nocCodes: string[]
-  ): Observable<{ nocCode?: string; last24Hours: VehicleStatsType[] }[] | null> {
-    return this.operatorSparklineStatsQuery.fetch({ nocCodes }).pipe(
+    operatorIds: string[]
+  ): Observable<{ operatorId?: string | null; last24Hours: VehicleStatsType[] }[] | null> {
+    return this.operatorSparklineStatsQuery.fetch({ operatorIds }).pipe(
       map(({ data }) => {
         if (!data?.operators?.items) {
-          console.warn('Failed to fetch sparkline stats', nocCodes);
+          console.warn('Failed to fetch sparkline stats', operatorIds);
           return null;
         } else {
           return data.operators.items.map((item) => ({
-            nocCode: item?.nocCode,
+            operatorId: item?.operatorId,
             last24Hours: item?.feedMonitoring?.liveStats?.last24Hours?.map((x) => x as VehicleStatsType) ?? [],
           }));
         }
@@ -75,8 +78,8 @@ export class FeedMonitoringService {
     );
   }
 
-  fetchOperator(nocCode: string): Observable<OperatorLiveStatusFragment | null> {
-    return this.operatorLiveStatusQuery.fetch({ nocCode }).pipe(
+  fetchOperator(operatorId: string): Observable<OperatorLiveStatusFragment | null> {
+    return this.operatorLiveStatusQuery.fetch({ operatorId }).pipe(
       map((res) => {
         const operator = res?.data?.operator ?? null;
         if (!operator && res?.errors) {
@@ -87,13 +90,13 @@ export class FeedMonitoringService {
     );
   }
 
-  fetchOperatorHistory(nocCode: string, date: DateTime): Observable<OperatorFeedHistoryFragment | null> {
+  fetchOperatorHistory(operatorId: string, date: DateTime): Observable<OperatorFeedHistoryFragment | null> {
     return this.operatorHistoricStatsQuery
       .fetch({
-        nocCode,
+        operatorId,
         date: date.toISODate(),
-        start: date.toUTC().startOf('day').toISO(),
-        end: date.toUTC().endOf('day').toISO(),
+        start: date.startOf('day').toUTC().toISO(),
+        end: date.endOf('day').toUTC().toISO(),
       })
       .pipe(
         map((res) => {
@@ -106,19 +109,19 @@ export class FeedMonitoringService {
       );
   }
 
-  fetchAlerts(nocCode: string, start: DateTime, end: DateTime): Observable<EventType[] | null> {
-    return this.eventsQuery.fetch({ nocCode, start: start.toUTC().toJSDate(), end: end.toUTC().toJSDate() }).pipe(
+  fetchAlerts(operatorId: string, start: DateTime, end: DateTime): Observable<EventType[] | null> {
+    return this.eventsQuery.fetch({ operatorId, start: start.toUTC().toJSDate(), end: end.toUTC().toJSDate() }).pipe(
       map((res) => res?.data?.events?.items ?? null),
       catchError(() => of(null))
     );
   }
 
-  fetchAlertStats(nocCode: string, end: DateTime, days = 90): Observable<EventStats[]> {
+  fetchAlertStats(operatorId: string, end: DateTime, days = 90): Observable<EventStats[]> {
     return this.eventStatsQuery
       .fetch({
-        nocCode,
-        start: end.toUTC().startOf('day').minus({ days }).toJSDate(),
-        end: end.toUTC().startOf('day').toJSDate(),
+        operatorId,
+        start: end.minus({ days }).startOf('day').toUTC().toJSDate(),
+        end: end.startOf('day').toUTC().toJSDate(),
       })
       .pipe(map((res) => nonNullishArray(res?.data?.eventStats)));
   }

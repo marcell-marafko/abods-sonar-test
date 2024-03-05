@@ -13,7 +13,6 @@ import {
   OnTimeStatsGQL,
   OnTimeStopPerformanceListGQL,
   OnTimeTimeSeriesGQL,
-  OperatorListGQL,
   OperatorPerformanceType,
   PerformanceFiltersInputType,
   PerformanceInputType,
@@ -37,9 +36,12 @@ export type DayOfWeekData = Partial<Omit<PunctualityDayOfWeekType, 'dayOfWeek'>>
   dayOfWeek: string;
 } & OnTimeRatios;
 
-export type OperatorPerformance = Pick<OperatorPerformanceType, 'name' | 'nocCode' | 'onTime' | 'late' | 'early'> &
+export type OperatorPerformance = Pick<
+  OperatorPerformanceType,
+  'name' | 'nocCode' | 'onTime' | 'late' | 'early' | 'operatorId'
+> &
   OnTimeRatios;
-export type ServicePerformance = ServicePerformanceType & OnTimeRatios;
+export type ServicePerformance = Omit<ServicePerformanceType, 'operatorInfo'> & OnTimeRatios;
 export type StopPerformance = StopPerformanceType & OnTimeRatios;
 export type AbstractPerformance = IPunctualityType &
   OnTimeRatios &
@@ -77,7 +79,6 @@ export interface OnTimeRatios {
 })
 export class OnTimeService {
   constructor(
-    private operatorListQuery: OperatorListGQL,
     private delayFrequencyDataQuery: OnTimeDelayFrequencyGQL,
     private timeSeriesQuery: OnTimeTimeSeriesGQL,
     private onTimeStatsQuery: OnTimeStatsGQL,
@@ -89,20 +90,14 @@ export class OnTimeService {
     private serviceInfoQuery: ServiceInfoGQL
   ) {}
 
-  get listOperators(): Observable<{ nocCode: string; name?: string | null }[]> {
-    return this.operatorListQuery
-      .fetch()
-      .pipe(
-        map(({ data }) => data?.operators?.items?.map((x) => x as { nocCode: string; name?: string | null }) ?? [])
-      );
-  }
-
   fetchOnTimeStats(params: PerformanceParams): Observable<PunctualityOverview> {
-    return this.onTimeStatsQuery.fetch({ params }, { fetchPolicy: 'no-cache' }).pipe(
+    return this.onTimeStatsQuery.watch({ params }, { fetchPolicy: 'no-cache' }).valueChanges.pipe(
       map(({ data }) => assert(data?.onTimePerformance?.punctualityOverview)),
       map((overview: PunctualityTotalsType) => {
         return {
           ...overview,
+          // If maxEarly / maxLate filter set we don't receive scheduled or completed numbers, we can infer completed:
+          completed: overview.completed || overview.early + overview.onTime + overview.late,
           noData: overview.scheduled || overview.completed ? Math.max(0, overview.scheduled - overview.completed) : NaN,
         };
       })
@@ -122,8 +117,10 @@ export class OnTimeService {
 
   fetchOnTimeTimeSeriesData(params: PerformanceParams): Observable<TimeSeriesData[]> {
     return this.timeSeriesQuery
-      .fetch({ params }, { fetchPolicy: 'no-cache', errorPolicy: 'none' })
-      .pipe(map(({ data }) => assert(data?.onTimePerformance?.punctualityTimeSeries).map(this.calculateOnTimePcts)));
+      .watch({ params }, { fetchPolicy: 'no-cache', errorPolicy: 'none' })
+      .valueChanges.pipe(
+        map(({ data }) => assert(data?.onTimePerformance?.punctualityTimeSeries).map(this.calculateOnTimePcts))
+      );
   }
 
   fetchOnTimePunctualityTimeOfDayData(params: PerformanceParams): Observable<TimeOfDayData[]> {
@@ -172,8 +169,8 @@ export class OnTimeService {
 
   fetchStopPerformanceList(params: PerformanceInputType): Observable<StopPerformance[]> {
     return this.onTimeStopPerformanceListQuery
-      .fetch({ params }, { fetchPolicy: 'no-cache', errorPolicy: 'none' })
-      .pipe(
+      .watch({ params }, { fetchPolicy: 'no-cache', errorPolicy: 'none' })
+      .valueChanges.pipe(
         map(({ data }) =>
           (data?.onTimePerformance?.stopPerformance ?? [])
             .map(this.calculateOnTimePcts)
@@ -184,8 +181,8 @@ export class OnTimeService {
 
   fetchOperatorPerformanceList(params: PerformanceInputType): Observable<OperatorPerformance[]> {
     return this.onTimeOperatorPerformanceListQuery
-      .fetch({ params }, { fetchPolicy: 'no-cache', errorPolicy: 'none' })
-      .pipe(
+      .watch({ params }, { fetchPolicy: 'no-cache', errorPolicy: 'none' })
+      .valueChanges.pipe(
         map(
           ({ data }) =>
             data?.onTimePerformance?.operatorPerformance?.items

@@ -11,15 +11,14 @@ import { OnTimeService, StopPerformance } from '../on-time.service';
 import { StopsGridComponent } from './stops-grid.component';
 import { TimingRendererComponent } from './timing-renderer/timing-renderer.component';
 import { CommonModule, PercentPipe } from '@angular/common';
-import { ParamsService } from '../params.service';
 import { fakeAsync, flush, tick } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { OnTimeModule } from '../on-time.module';
+import { ApolloTestingModule } from 'apollo-angular/testing';
 
 describe('StopsGridComponent', () => {
   let spectator: Spectator<StopsGridComponent>;
   let service: OnTimeService;
-  let paramsService: ParamsService;
 
   const createComponent = createComponentFactory({
     component: StopsGridComponent,
@@ -32,8 +31,9 @@ describe('StopsGridComponent', () => {
       RouterTestingModule,
       CommonModule,
       FormsModule,
-      AgGridModule.withComponents([]),
+      AgGridModule,
       HttpClientTestingModule,
+      ApolloTestingModule,
     ],
     detectChanges: false,
   });
@@ -43,6 +43,7 @@ describe('StopsGridComponent', () => {
       lineId: 'LI00001',
       stopId: 'ST000000000001',
       stopInfo: {
+        sourceId: '',
         stopName: 'Something road',
         stopId: 'ST000000000001',
         stopLocation: { latitude: 56.7686, longitude: 0.4567 },
@@ -70,6 +71,7 @@ describe('StopsGridComponent', () => {
       lineId: 'LI00001',
       stopId: 'ST000000000002',
       stopInfo: {
+        sourceId: '',
         stopName: 'Thingy street',
         stopId: 'ST000000000002',
         stopLocation: { latitude: 56.7686, longitude: 0.4567 },
@@ -98,15 +100,14 @@ describe('StopsGridComponent', () => {
   beforeEach(() => {
     spectator = createComponent();
     service = spectator.inject(OnTimeService);
-    paramsService = spectator.inject(ParamsService);
   });
 
-  it('should call service', () => {
-    paramsService.params.next({
+  it('should call service without admin area ids', () => {
+    spectator.component.params = {
       fromTimestamp: DateTime.fromISO('2021-02-01T00:00:00Z').toJSDate(),
       toTimestamp: DateTime.fromISO('2021-03-01T00:00:00Z').toJSDate(),
-      filters: { nocCodes: ['NOC1'] },
-    });
+      filters: { nocCodes: ['NOC1'], adminAreaIds: ['AA050'] },
+    };
 
     const spy = spyOn(service, 'fetchStopPerformanceList').and.returnValue(of(stops));
     spectator.detectChanges();
@@ -126,11 +127,11 @@ describe('StopsGridComponent', () => {
       ['000000000002', 'Timing point', 'Thingy street', '29', '93.1%', '+00:44', '89.7%', '3.4%', '10.3%'],
     ];
 
-    paramsService.params.next({
+    spectator.component.params = {
       fromTimestamp: DateTime.fromISO('2021-02-01T00:00:00Z').toJSDate(),
       toTimestamp: DateTime.fromISO('2021-03-01T00:00:00Z').toJSDate(),
       filters: { nocCodes: ['NOC1'] },
-    });
+    };
 
     spyOn(service, 'fetchStopPerformanceList').and.returnValue(of(stops));
 
@@ -144,15 +145,15 @@ describe('StopsGridComponent', () => {
     const row2 = spectator.queryAll('[role="row"][row-index="1"] [role="gridcell"]').map((e) => e.textContent?.trim());
 
     expect(row2).toEqual(expected[1]);
-    flush();
+    flush(100);
   }));
 
   it('should calculate summary row correctly', fakeAsync(() => {
-    paramsService.params.next({
+    spectator.component.params = {
       fromTimestamp: DateTime.fromISO('2021-02-01T00:00:00Z').toJSDate(),
       toTimestamp: DateTime.fromISO('2021-03-01T00:00:00Z').toJSDate(),
       filters: { nocCodes: ['NOC1'] },
-    });
+    };
 
     spyOn(service, 'fetchStopPerformanceList').and.returnValue(of(stops));
 
@@ -164,6 +165,6 @@ describe('StopsGridComponent', () => {
 
     expect(summary).toEqual(expected);
 
-    flush();
+    flush(100);
   }));
 });

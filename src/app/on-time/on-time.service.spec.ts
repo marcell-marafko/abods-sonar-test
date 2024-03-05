@@ -1,4 +1,5 @@
 import { createServiceFactory, SpectatorService } from '@ngneat/spectator';
+import { ApolloTestingModule } from 'apollo-angular/testing';
 import { OnTimeService, ServicePerformance, TimeOfDayData } from './on-time.service';
 import objectContaining = jasmine.objectContaining;
 
@@ -22,7 +23,7 @@ const performance = (
 
 describe('OnTimeService', () => {
   let spectator: SpectatorService<OnTimeService>;
-  const createService = createServiceFactory(OnTimeService);
+  const createService = createServiceFactory({ service: OnTimeService, imports: [ApolloTestingModule] });
 
   beforeEach(() => (spectator = createService()));
 

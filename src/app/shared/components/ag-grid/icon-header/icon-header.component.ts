@@ -13,7 +13,7 @@ export interface IconHeaderParams extends IHeaderParams {
     <div class="ag-header-cell-label" role="presentation" (click)="sortClicked($event)">
       <span
         class="ag-header-cell-text icon-header"
-        [ngxTippy]
+        ngxTippy
         [tippyProps]="{ theme: 'gds-tooltip', content: params?.tooltip }"
       >
         <svg-icon class="icon-header__icon" [applyClass]="true" [src]="params?.src || ''" aria-hidden="true"></svg-icon>

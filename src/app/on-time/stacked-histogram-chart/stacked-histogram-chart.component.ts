@@ -26,7 +26,7 @@ const TOOLTIP_HTML = `<header class="amcharts__tooltip-heading">{tooltipLabel}</
   styles: [':host { display: block; min-height: 100%; width: 100%;}'],
 })
 export class StackedHistogramChartComponent extends BaseChart implements AfterViewInit, OnDestroy {
-  destroy$ = new Subject();
+  destroy$ = new Subject<void>();
   data$ = new Subject<unknown[]>();
 
   @Input() category?: string;
@@ -192,6 +192,7 @@ export class StackedHistogramChartComponent extends BaseChart implements AfterVi
     legend.labels.template.text = `[bold]{name}[/] [${this.chartService.colorMap.legendaryGrey}]{hint}[/]`;
     legend.labels.template.fontSize = 16;
     legend.marginTop = 30;
+    legend.marginBottom = 30;
     legend.itemContainers.template.paddingTop = 0;
     legend.itemContainers.template.paddingBottom = 0;
     legend.useDefaultMarker = false;

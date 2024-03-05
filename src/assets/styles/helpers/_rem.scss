@@ -1,4 +1,5 @@
 @charset "UTF-8";
+@use "sass:math";
 // -----------------------------------------------------------------------------
 // REM
 // -----------------------------------------------------------------------------
@@ -8,7 +9,6 @@
 //  @argument  {number (unitless)}  $pxval
 //    text size
 //
-
 //  @example scss
 //  .element {
 //    font-size: rem(15);
@@ -23,5 +23,5 @@
   @if not unitless($pxval) {
     $pxval: strip-unit($pxval);
   }
-  @return ($pxval / $rem-base) * 1rem;
+  @return math.div($pxval, $rem-base) * 1rem;
 }

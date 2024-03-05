@@ -11,7 +11,7 @@ describe('FeedMonitoringService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ApolloTestingModule, AgGridModule.withComponents([])],
+      imports: [ApolloTestingModule, AgGridModule],
     });
     service = TestBed.inject(FeedMonitoringService);
     controller = TestBed.inject(ApolloTestingController);
@@ -21,16 +21,16 @@ describe('FeedMonitoringService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should be send dates in UTC', () => {
-    service.fetchAlertStats('ARBB', DateTime.fromISO('2021-05-05T14:30:00.000+01:00')).subscribe((stats) => {
+  it('should send dates in UTC', () => {
+    service.fetchAlertStats('OP01', DateTime.fromISO('2021-05-05T14:30:00.000+01:00')).subscribe((stats) => {
       expect(stats).not.toBeNull();
     });
 
     const op = controller.expectOne(EventStatsDocument);
 
-    expect(op.operation.variables.nocCode).toEqual('ARBB');
-    expect(op.operation.variables.start).toEqual(DateTime.utc(2021, 2, 4).toJSDate());
-    expect(op.operation.variables.end).toEqual(DateTime.utc(2021, 5, 5).toJSDate());
+    expect(op.operation.variables.operatorId).toEqual('OP01');
+    expect(op.operation.variables.start).toEqual(DateTime.local(2021, 2, 4).toUTC().toJSDate());
+    expect(op.operation.variables.end).toEqual(DateTime.local(2021, 5, 5).toUTC().toJSDate());
 
     op.flush({
       data: {

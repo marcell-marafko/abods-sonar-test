@@ -1,5 +1,4 @@
-import { RouterTestingModule } from '@angular/router/testing';
-import { byText, byTextContent, createRoutingFactory, SpectatorRouting } from '@ngneat/spectator';
+import { byText, byTextContent, createComponentFactory, Spectator, SpyObject } from '@ngneat/spectator';
 import { ApolloTestingModule } from 'apollo-angular/testing';
 import { of } from 'rxjs';
 import { fakeEvent } from 'src/test-support/faker';
@@ -14,42 +13,42 @@ import { AlertComponent } from './alert/alert.component';
 import { dateTimeCloseEnoughToEqualityMatcher } from 'src/test-support/equality';
 
 describe('AlertListComponent', () => {
-  let spectator: SpectatorRouting<AlertListComponent>;
-  let service: FeedMonitoringService;
-  const createComponent = createRoutingFactory({
+  let spectator: Spectator<AlertListComponent>;
+  let service: SpyObject<FeedMonitoringService>;
+
+  const createComponent = createComponentFactory({
     component: AlertListComponent,
-    imports: [FeedMonitoringModule, RouterTestingModule, ApolloTestingModule, SharedModule],
+    imports: [FeedMonitoringModule, ApolloTestingModule, SharedModule],
+    mocks: [FeedMonitoringService],
     declarations: [AlertComponent],
+    detectChanges: false,
+  });
+
+  beforeEach(() => {
+    spectator = createComponent();
+    spectator.component.operatorId = 'OP01';
+    service = spectator.inject(FeedMonitoringService);
   });
 
   beforeAll(() => Faker.seed(434));
 
   it('should create', () => {
-    spectator = createComponent();
-
     expect(spectator.component).toBeTruthy();
   });
 
   it('should fetch recent events', () => {
     jasmine.addCustomEqualityTester(dateTimeCloseEnoughToEqualityMatcher);
 
-    spectator = createComponent();
-
     spectator.component.mode = AlertMode.LiveStatus;
 
-    service = spectator.inject(FeedMonitoringService);
-    spyOn(service, 'fetchAlerts').and.returnValue(of([]));
-
-    spectator.setRouteParam('nocCode', 'NOC01');
+    service.fetchAlerts.and.returnValue(of([]));
 
     spectator.detectChanges();
 
-    expect(service.fetchAlerts).toHaveBeenCalledWith('NOC01', DateTime.local().minus({ days: 1 }), DateTime.local());
+    expect(service.fetchAlerts).toHaveBeenCalledWith('OP01', DateTime.local().minus({ days: 1 }), DateTime.local());
   });
 
   it('should fetch windowed events', () => {
-    spectator = createComponent();
-
     spectator.component.mode = AlertMode.FeedHistory;
 
     const startDate = DateTime.fromISO('2020-02-03T00:00:00Z');
@@ -57,30 +56,21 @@ describe('AlertListComponent', () => {
 
     spectator.setInput({ date: startDate });
 
-    service = spectator.inject(FeedMonitoringService);
-    spyOn(service, 'fetchAlerts').and.returnValue(of([]));
-
-    spectator.setRouteParam('nocCode', 'NOC01');
+    service.fetchAlerts.and.returnValue(of([]));
 
     spectator.detectChanges();
 
-    expect(service.fetchAlerts).toHaveBeenCalledWith('NOC01', startDate, endDate);
+    expect(service.fetchAlerts).toHaveBeenCalledWith('OP01', startDate, endDate);
   });
 
   it('should show message', () => {
-    spectator = createComponent();
-
     spectator.component.mode = AlertMode.LiveStatus;
-
-    service = spectator.inject(FeedMonitoringService);
 
     const message = 'This text should be there';
 
-    spyOn(service, 'fetchAlerts').and.callFake((_, start, end) =>
+    service.fetchAlerts.and.callFake((_, start, end) =>
       of([fakeEvent({ message, start, end, type: AlertType.VehicleCountDisparityEvent })])
     );
-
-    spectator.setRouteParam('nocCode', 'NOC01');
 
     spectator.detectChanges();
 
@@ -95,15 +85,9 @@ describe('AlertListComponent', () => {
 
   typeTestCases.forEach(({ type, title }) =>
     it(`should show event type for ${type}`, () => {
-      spectator = createComponent();
-
       spectator.component.mode = AlertMode.LiveStatus;
 
-      service = spectator.inject(FeedMonitoringService);
-
-      spyOn(service, 'fetchAlerts').and.callFake((_, start, end) => of([fakeEvent({ type, start, end })]));
-
-      spectator.setRouteParam('nocCode', 'NOC01');
+      service.fetchAlerts.and.callFake((_, start, end) => of([fakeEvent({ type, start, end })]));
 
       spectator.detectChanges();
 
@@ -112,59 +96,42 @@ describe('AlertListComponent', () => {
   );
 
   it('should update when date changed', () => {
-    spectator = createComponent();
-
     spectator.component.mode = AlertMode.FeedHistory;
-
-    const initDate = DateTime.fromISO('2020-02-03T00:00:00Z');
-
-    spectator.setInput({ date: initDate });
-
-    service = spectator.inject(FeedMonitoringService);
-    const spy = spyOn(service, 'fetchAlerts').and.returnValue(of([]));
-
-    spectator.setRouteParam('nocCode', 'NOC01');
-
-    spy.calls.reset();
 
     const startDate = DateTime.fromISO('2020-03-03T00:00:00Z');
     const endDate = DateTime.fromISO('2020-03-04T00:00:00Z');
 
-    spectator.setInput({ date: startDate });
+    service.fetchAlerts.and.returnValue(of([]));
+
+    spectator.component.date = startDate;
 
     spectator.detectChanges();
 
-    expect(service.fetchAlerts).toHaveBeenCalledWith('NOC01', startDate, endDate);
+    expect(service.fetchAlerts).toHaveBeenCalledWith('OP01', startDate, endDate);
   });
 
   it('should show no alerts message', () => {
-    spectator = createComponent();
-
     spectator.component.mode = AlertMode.LiveStatus;
 
     service = spectator.inject(FeedMonitoringService);
 
-    spyOn(service, 'fetchAlerts').and.returnValue(of([]));
+    service.fetchAlerts.and.returnValue(of([]));
+
+    spectator.detectChanges();
 
     expect(spectator.query(byText('No events have been observed in the feed for this time period.'))).toBeTruthy();
   });
 
   it('should display feed history alerts in ascending chronological order', () => {
-    spectator = createComponent();
-
     spectator.component.mode = AlertMode.FeedHistory;
 
-    service = spectator.inject(FeedMonitoringService);
-
-    spyOn(service, 'fetchAlerts').and.callFake((_) =>
+    service.fetchAlerts.and.callFake((_) =>
       of([
         fakeEvent({ start: DateTime.fromISO('2020-12-08T10:52:00Z') }),
         fakeEvent({ start: DateTime.fromISO('2020-12-08T10:50:00Z') }),
         fakeEvent({ start: DateTime.fromISO('2020-12-08T10:51:00Z') }),
       ])
     );
-
-    spectator.setRouteParam('nocCode', 'NOC01');
 
     spectator.setInput({ date: DateTime.fromISO('2020-12-08T00:00:00Z') });
 
@@ -180,22 +147,16 @@ describe('AlertListComponent', () => {
   });
 
   it('should display live status alerts in descending chronological order', () => {
-    spectator = createComponent();
-
     spectator.component.mode = AlertMode.LiveStatus;
 
-    service = spectator.inject(FeedMonitoringService);
-
-    const now = DateTime.utc();
+    const now = DateTime.local();
     const time1 = now.minus({ hours: 3, minutes: 1 });
     const time2 = now.minus({ hours: 3, minutes: 2 });
     const time3 = now.minus({ hours: 3, minutes: 3 });
 
-    spyOn(service, 'fetchAlerts').and.callFake((_) =>
+    service.fetchAlerts.and.callFake((_) =>
       of([fakeEvent({ start: time3 }), fakeEvent({ start: time1 }), fakeEvent({ start: time2 })])
     );
-
-    spectator.setRouteParam('nocCode', 'NOC01');
 
     spectator.detectChanges();
 

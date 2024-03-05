@@ -1,13 +1,13 @@
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy } from '@angular/core';
 import { combineLatest, ReplaySubject, Subject, of } from 'rxjs';
 import { BaseChart } from 'src/app/shared/components/amcharts/base-chart';
-import { OnTimeService, PerformanceParams } from '../on-time.service';
+import { OnTimeService, PerformanceParams, TimeSeriesData } from '../on-time.service';
 
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_animated from '@amcharts/amcharts4/themes/animated';
 import { ChartService } from 'src/app/shared/components/amcharts/chart.service';
-import { map, switchMap } from 'rxjs/operators';
+import { map, switchMap, take } from 'rxjs/operators';
 import { PerformanceCategories } from '../../dashboard/dashboard.types';
 import { Granularity } from 'src/generated/graphql';
 import { AsyncStatus, withStatus } from '../pending.model';
@@ -57,8 +57,8 @@ export class TimeSeriesChartComponent extends BaseChart implements AfterViewInit
     this.params$
       .pipe(
         map(({ filters, ...params }) => {
-          const to = DateTime.fromJSDate(params.toTimestamp);
-          const from = DateTime.fromJSDate(params.fromTimestamp);
+          const to = DateTime.fromISO(params.toTimestamp);
+          const from = DateTime.fromISO(params.fromTimestamp);
 
           let granularity = Granularity.Day;
           if (Math.abs(to.diff(from, 'days').days) <= 5) {
@@ -69,14 +69,10 @@ export class TimeSeriesChartComponent extends BaseChart implements AfterViewInit
             filters: { ...filters, granularity },
           };
         }),
-        switchMap((params) =>
-          combineLatest([
-            withStatus(() => {
-              return this.service.fetchOnTimeTimeSeriesData(params);
-            }, this.status$),
-            of(params),
-          ])
-        )
+        switchMap((params) => {
+          const data$ = this.service.fetchOnTimeTimeSeriesData(params).pipe(take(1));
+          return combineLatest([withStatus(() => data$, this.status$), of(params)]);
+        })
       )
       .subscribe(
         ([
@@ -89,8 +85,8 @@ export class TimeSeriesChartComponent extends BaseChart implements AfterViewInit
         ]) => {
           if (this.dateAxis) {
             // Ensure that the axis covers the entire selected period
-            this.dateAxis.min = DateTime.fromJSDate(fromTimestamp).toMillis();
-            this.dateAxis.max = DateTime.fromJSDate(toTimestamp)
+            this.dateAxis.min = DateTime.fromISO(fromTimestamp).toMillis();
+            this.dateAxis.max = DateTime.fromISO(toTimestamp)
               .minus({ [granularity]: 1 })
               .toMillis();
           }
@@ -98,6 +94,13 @@ export class TimeSeriesChartComponent extends BaseChart implements AfterViewInit
           if (this.onTimeSeries) {
             // Make sure the tooltip shows the time iff Hour granularity
             this.onTimeSeries.tooltipHTML = this.tooltipHtml(granularity);
+          }
+
+          if (data?.length === 1) {
+            // If we only have one data point we need to push another hour to fix x-axis bug (ABOD-865)
+            data.push(<TimeSeriesData>{
+              ts: DateTime.fromISO(data[0].ts).plus({ hour: 1 }).toISO({ suppressMilliseconds: true }),
+            });
           }
 
           this.chart.data = data ?? [];
@@ -135,6 +138,7 @@ export class TimeSeriesChartComponent extends BaseChart implements AfterViewInit
     legend.itemContainers.template.togglable = false;
     legend.labels.template.text = `[bold]{name}[/] [${this.chartService.colorMap.legendaryGrey}]{hint}[/]`;
     legend.marginTop = 30;
+    legend.marginBottom = 30;
     legend.itemContainers.template.paddingTop = 0;
     legend.itemContainers.template.paddingBottom = 0;
     legend.useDefaultMarker = false;
@@ -213,6 +217,10 @@ export class TimeSeriesChartComponent extends BaseChart implements AfterViewInit
       {
         timeUnit: 'day',
         count: 7,
+      },
+      {
+        timeUnit: 'month',
+        count: 1,
       },
     ]);
 

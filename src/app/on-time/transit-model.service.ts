@@ -1,28 +1,19 @@
 import { ServicePatternType, TransitModelServicePatternStopsGQL } from '../../generated/graphql';
 import { map } from 'rxjs/operators';
-import { isNotNullOrUndefined } from '../shared/rxjs-operators';
 import { Observable } from 'rxjs';
 import { Injectable } from '@angular/core';
+import { Definitely, nonNullishArray } from '../shared/array-operators';
 
-// TODO put these in the shared module
-export type Definitely<T> = {
-  [P in keyof T]-?: T[P] extends Array<infer I> ? NonNullable<I>[] : NonNullable<T[P]>;
-};
-
-export type NullishArray<T> = (T | null | undefined)[] | null | undefined;
-
-export const nonNullishArray = <T>(array: NullishArray<T>): T[] => (array ?? []).filter(isNotNullOrUndefined);
-
-export type ServicePattern = Definitely<Omit<ServicePatternType, '__typename'>>;
+export type ServicePattern = Definitely<Omit<ServicePatternType, '__typename' | 'direction' | 'direction_id'>>;
 
 @Injectable({ providedIn: 'root' })
 export class TransitModelService {
   constructor(private servicePatternStopsQuery: TransitModelServicePatternStopsGQL) {}
 
-  fetchServicePatternStops(nocCode: string | null, lineId: string | null): Observable<ServicePattern[]> {
+  fetchServicePatternStops(operatorId: string | null, lineId: string | null): Observable<ServicePattern[]> {
     return this.servicePatternStopsQuery
       .fetch({
-        nocCode: nocCode ? nocCode : '',
+        operatorId: operatorId ? operatorId : '',
         lineId: lineId ? lineId : '',
       })
       .pipe(
@@ -31,6 +22,7 @@ export class TransitModelService {
           patterns.map((pattern) => ({
             ...pattern,
             stops: nonNullishArray(pattern.stops),
+            serviceLinks: nonNullishArray(pattern.serviceLinks),
           }))
         )
       );

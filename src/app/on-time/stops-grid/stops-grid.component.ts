@@ -1,13 +1,13 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { OnTimeService, PerformanceParams, StopPerformance } from '../on-time.service';
-import { of, Subject } from 'rxjs';
-import { catchError, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { of, ReplaySubject, Subject } from 'rxjs';
+import { catchError, map, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { PerformanceInputType } from '../../../generated/graphql';
 import { DateTime } from 'luxon';
 import { TimingRendererComponent } from './timing-renderer/timing-renderer.component';
-import { ParamsService } from '../params.service';
 import { SelectableTextCellRendererComponent } from 'src/app/shared/components/ag-grid/selectable-text-cell/selectable-text-cell.component';
 import { ColumnDescription } from '../on-time-grid/on-time-grid.component';
+import { removeAdminAreaIds } from '../view-service/view-service.component';
 
 @Component({
   selector: 'app-stops-grid',
@@ -36,11 +36,10 @@ export class StopsGridComponent implements OnInit, OnDestroy {
       colId: 'naptan',
       headerName: 'NAPTAN',
       valueGetter: ({ data }) => data.stopId?.substring(2),
-      cellRendererFramework: SelectableTextCellRendererComponent,
+      cellRenderer: SelectableTextCellRendererComponent,
       cellRendererParams: { noWrap: true, textOverflow: 'visible' },
       minWidth: 150,
-      maxWidth: 150,
-      width: 150,
+      flex: 2,
       getQuickFilterText: ({ value }) => value,
     },
     {
@@ -50,12 +49,13 @@ export class StopsGridComponent implements OnInit, OnDestroy {
       isDefaultShown: true,
       colId: 'timingPoint',
       field: 'timingPoint',
-      headerComponentFramework: TimingRendererComponent,
+      headerComponent: TimingRendererComponent,
       headerComponentParams: { value: true },
-      cellRendererFramework: TimingRendererComponent,
+      cellRenderer: TimingRendererComponent,
       maxWidth: 50,
       minWidth: 50,
       width: 50,
+      headerName: 'Timing point',
     },
     {
       title: 'Name',
@@ -66,7 +66,7 @@ export class StopsGridComponent implements OnInit, OnDestroy {
       field: 'stopName',
       headerName: 'Name',
       valueGetter: ({ data }) => data.stopInfo?.stopName,
-      cellRendererFramework: SelectableTextCellRendererComponent,
+      cellRenderer: SelectableTextCellRendererComponent,
       cellRendererParams: {
         noWrap: true,
         textOverflow: 'visible',
@@ -77,7 +77,7 @@ export class StopsGridComponent implements OnInit, OnDestroy {
           }
         },
       },
-      flex: 2,
+      flex: 6, // Should mean name takes the available width over NAPTAN (unless it's hidden)
       minWidth: 200,
       wrapText: true,
       getQuickFilterText: ({ value }) => value,
@@ -92,8 +92,8 @@ export class StopsGridComponent implements OnInit, OnDestroy {
       headerName: 'Scheduled departures',
       sortable: true,
       unSortIcon: true,
-      maxWidth: 130,
-      flex: 1,
+      maxWidth: 160,
+      flex: 2,
       type: 'numericColumn',
     },
     {
@@ -108,11 +108,11 @@ export class StopsGridComponent implements OnInit, OnDestroy {
       sortable: true,
       unSortIcon: true,
       maxWidth: 130,
-      flex: 1,
+      flex: 2,
       type: 'numericColumn',
     },
     {
-      title: 'Av. delay',
+      title: 'Average delay',
       columnType: 'AvDelay',
       colId: 'averageDelay',
       field: 'averageDelay',
@@ -180,18 +180,27 @@ export class StopsGridComponent implements OnInit, OnDestroy {
   errored = false;
 
   csvFilename = 'Stop_Performance';
-  destroy$ = new Subject();
+  destroy$ = new Subject<void>();
 
-  constructor(private onTimeService: OnTimeService, private paramsService: ParamsService) {}
+  @Input()
+  set params(params: PerformanceParams | null) {
+    if (params) {
+      this.params$.next(params);
+    }
+  }
+  private params$ = new ReplaySubject<PerformanceParams>(1);
+
+  constructor(private onTimeService: OnTimeService) {}
 
   ngOnInit() {
-    this.paramsService.params
+    this.params$
       .pipe(
         tap((ps) => {
           this.loading = true;
           this.errored = false;
           this.csvFilename = this.calcCsvFilename(ps);
         }),
+        map((params) => removeAdminAreaIds(params)),
         switchMap((params) =>
           this.onTimeService.fetchStopPerformanceList(params as PerformanceInputType).pipe(
             catchError(() => {
@@ -215,8 +224,8 @@ export class StopsGridComponent implements OnInit, OnDestroy {
   }
 
   calcCsvFilename({ fromTimestamp, toTimestamp, filters: { lineIds } }: PerformanceParams) {
-    const inclusiveTo = DateTime.fromJSDate(toTimestamp).minus({ minute: 1 });
-    return `Stop_Performance_${lineIds?.[0]}_${DateTime.fromJSDate(fromTimestamp).toFormat(
+    const inclusiveTo = DateTime.fromISO(toTimestamp).minus({ minute: 1 });
+    return `Stop_Performance_${lineIds?.[0]}_${DateTime.fromISO(fromTimestamp).toFormat(
       'yy-MM-dd'
     )}_-_${inclusiveTo.toFormat('yy-MM-dd')}`;
   }

@@ -11,6 +11,7 @@ import { PerformanceChartComponent } from './performance/chart/chart.component';
 import { FeedStatusSingleComponent } from './feed-status-single/feed-status-single.component';
 import { FeedStatusSummaryComponent } from './feed-status-summary/feed-status-summary.component';
 import { PerformanceRankingComponent } from './performance/ranking-table/ranking-table.component';
+import { FormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [
@@ -22,7 +23,7 @@ import { PerformanceRankingComponent } from './performance/ranking-table/ranking
     PerformanceChartComponent,
     PerformanceRankingComponent,
   ],
-  imports: [CommonModule, RouterModule, LayoutModule, SharedModule, DashboardRoutingModule],
+  imports: [CommonModule, RouterModule, LayoutModule, SharedModule, DashboardRoutingModule, FormsModule],
   exports: [DashboardComponent, VehiclesStatusComponent],
 })
 export class DashboardModule {}

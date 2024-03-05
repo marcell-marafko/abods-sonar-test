@@ -1,6 +1,7 @@
 fragment OperatorDashboard on OperatorType {
   name
   nocCode
+  operatorId
   feedMonitoring {
     feedStatus
     liveStats {
@@ -12,6 +13,7 @@ fragment OperatorDashboard on OperatorType {
 
 fragment OperatorDashboardVehicleCounts on OperatorType {
   nocCode
+  operatorId
   feedMonitoring {
     liveStats {
       currentVehicles

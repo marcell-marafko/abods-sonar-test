@@ -14,4 +14,20 @@
       display: none;
     }
   }
+  &__help-icon {
+    color: govuk-colour('white');
+    width: 24px;
+  }
+  &__help-link {
+    @include bp($to-desktop) {
+      display: none;
+    }
+    @include govuk-font(19);
+    margin-bottom: 10px;
+    &:focus {
+      .header__help-icon {
+        color: govuk-colour('black');
+      }
+    }
+  }
 }

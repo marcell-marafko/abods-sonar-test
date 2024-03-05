@@ -20,11 +20,12 @@ describe('StopPerformanceService', () => {
   it('should fetch transit model data', () => {
     const expected: ServicePatternType = {
       servicePatternId: '123',
+      serviceLinks: [],
       name: 'High Wycombe to Chesham',
       stops: [{ stopId: 'ST0000001', stopName: 'Railway Station', lat: 52, lon: 0 }],
     };
 
-    spectator.service.fetchServicePatternStops('ARBB', 'LI12345').subscribe(([actual]) => {
+    spectator.service.fetchServicePatternStops('OP1', 'LI12345').subscribe(([actual]) => {
       expect(actual).not.toBeNull();
       expect(actual.servicePatternId).toEqual('123');
       expect(actual.name).toEqual('High Wycombe to Chesham');
@@ -33,7 +34,7 @@ describe('StopPerformanceService', () => {
 
     const op = controller.expectOne(TransitModelServicePatternStopsDocument);
 
-    expect(op.operation.variables.nocCode).toEqual('ARBB');
+    expect(op.operation.variables.operatorId).toEqual('OP1');
     expect(op.operation.variables.lineId).toEqual('LI12345');
 
     op.flush({
@@ -46,13 +47,13 @@ describe('StopPerformanceService', () => {
   });
 
   it('should cope with empty array in graphql response', () => {
-    spectator.service.fetchServicePatternStops('CRDR', 'LI34567').subscribe((actual) => {
+    spectator.service.fetchServicePatternStops('OP2', 'LI34567').subscribe((actual) => {
       expect(actual).toHaveSize(0);
     });
 
     const op = controller.expectOne(TransitModelServicePatternStopsDocument);
 
-    expect(op.operation.variables.nocCode).toEqual('CRDR');
+    expect(op.operation.variables.operatorId).toEqual('OP2');
     expect(op.operation.variables.lineId).toEqual('LI34567');
 
     op.flush({

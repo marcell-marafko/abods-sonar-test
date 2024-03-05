@@ -48,6 +48,7 @@ export class SegmentedToggleItemComponent {
 
     if (this.group) {
       this.group.onChange(this.value);
+      this.group.writeValue(this.value);
     }
   }
 

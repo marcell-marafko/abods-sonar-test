@@ -12,4 +12,5 @@ export class RadiosComponent {
   @Input() error?: string;
   @Input() errorId?: string;
   @Input() conditional?: boolean;
+  @Input() legendSize?: 'small' | 'medium' | 'large';
 }

@@ -27,7 +27,7 @@ export class AlertListViewModel {
   constructor(event: EventFragment, mode: AlertMode) {
     this.type = event.type as AlertType;
     this.message = event.data?.message;
-    this.timestamp = DateTime.fromISO(event.timestamp, { zone: 'utc' });
+    this.timestamp = DateTime.fromISO(event.timestamp, { zone: 'utc' }).toLocal();
     this.mode = mode;
   }
 

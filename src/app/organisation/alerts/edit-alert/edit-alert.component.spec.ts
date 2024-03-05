@@ -86,7 +86,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should fetch alert details', () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     const spy = spyOn(service, 'fetchUserAlert$').and.returnValue(of(null));
     component.editAlert('42');
 
@@ -96,7 +96,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should emit openEdit on create', () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     const emitSpy = spyOn(component.openEdit, 'emit');
 
     spectator.detectChanges();
@@ -109,7 +109,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should emit openEdit on edit', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(of(vehicleDisparityAlert));
 
@@ -126,7 +126,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should load feed failure event correctly', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(of(feedFailureAlert));
 
@@ -145,7 +145,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should load vehicle count disparity event correctly', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(of(vehicleDisparityAlert));
 
@@ -166,7 +166,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should validate alert type', () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
 
     spectator.detectChanges();
 
@@ -183,7 +183,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should not allow 0 eventThreshold', () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
 
     spectator.detectChanges();
 
@@ -204,7 +204,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should not allow staff user to change sendToId', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(staffUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(staffUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(
       of({
@@ -224,7 +224,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should update existing alert on save', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(staffUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(staffUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(
       of({
@@ -259,7 +259,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should create new alert on save', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
 
     spectator.detectChanges();
@@ -286,7 +286,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should allow existing alert to be deleted', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(of(feedFailureAlert));
 
@@ -309,7 +309,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should now allow alert to be deleted before its created', () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
 
     spectator.detectChanges();
@@ -341,7 +341,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should emit closeEdit after successful create', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
 
     spectator.detectChanges();
@@ -364,7 +364,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should emit closeEdit after successful delete', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(of(feedFailureAlert));
 
@@ -425,7 +425,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should display error message on failed create', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
 
     spectator.detectChanges();
@@ -446,7 +446,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should not emit closeEdit after failed create', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
 
     spectator.detectChanges();
@@ -468,7 +468,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should display error message on failed delete', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(of(feedFailureAlert));
 
@@ -489,7 +489,7 @@ describe('EditAlertComponent', () => {
   });
 
   it('should not emit closeEdit after failed delete', async () => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(of(adminUser));
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(of(adminUser));
     spyOn(service, 'listUsers$').and.returnValue(of(users));
     spyOn(service, 'fetchUserAlert$').and.returnValue(of(feedFailureAlert));
 

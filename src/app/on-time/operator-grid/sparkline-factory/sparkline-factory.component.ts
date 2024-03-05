@@ -25,7 +25,7 @@ export class SparklineFactoryComponent extends BaseChart implements AfterViewIni
   }
 
   renderStatic(data: TimeSeriesData[], interval: Interval): Observable<SafeHtml> {
-    const rendered$ = new Subject();
+    const rendered$ = new Subject<void>();
 
     this.dateAxis.min = interval.start.toMillis();
     this.dateAxis.max = interval.end.toMillis();

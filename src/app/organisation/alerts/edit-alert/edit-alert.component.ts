@@ -49,7 +49,7 @@ export class EditAlertComponent implements OnInit, OnDestroy {
       this.organisationService.listUsers$().subscribe((users) => {
         this.users = users;
       }),
-      this.authService.authenticatedUser.subscribe((user) => {
+      this.authService.authenticatedUser$.subscribe((user) => {
         this.authenticatedUser = user;
         if (user?.roles.some(({ name }) => name === 'Administrator')) {
           this.alertForm.get('sendToId')?.enable();
@@ -221,7 +221,7 @@ export class EditAlertComponent implements OnInit, OnDestroy {
       }
       return 'This field is required.';
     } else if (prop.errors?.min) {
-      const { min } = prop.errors?.min;
+      const { min } = prop.errors?.min ?? '';
       return `Value must be at least ${min}`;
     }
   }

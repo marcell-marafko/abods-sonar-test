@@ -2,28 +2,30 @@
 @import 'src/assets/styles/helpers/helpers';
 
 .panel {
-  visibility: hidden;
   position: fixed;
   top: 0;
   right: 0;
+  visibility: hidden;
   height: 100%;
-  width: 380px;
+  width: 0px;
+  border: none;
+  padding: 0px;
   background: govuk-colour('white');
-  border-left: 1px solid $govuk-border-colour;
-  z-index: $z-menu;
-  padding: govuk-spacing(5);
-  transform: translateX(100%);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow-y: auto;
-  overflow-x: hidden; //hides the horizontal scrollbar that appears when vertical scrolling is enabled as it's not required to access functionality
+  z-index: $z-modal;
+  animation: slidein 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   &--open {
+    width: 380px;
+    padding: govuk-spacing(4);
+    border-left: 1px solid $govuk-border-colour;
     visibility: visible;
+  }
+}
+
+@keyframes slidein {
+  from {
+    transform: translateX(100%);
+  }
+  to {
     transform: translateX(0);
-  }
-  &__close-wrapper {
-    text-align: right;
-  }
-  &__close-btn {
-    @include govuk-font(19);
   }
 }

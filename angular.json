@@ -6,6 +6,9 @@
     "raa-client": {
       "projectType": "application",
       "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        },
         "@ngneat/spectator:spectator-component": {
           "style": "scss"
         },
@@ -26,7 +29,7 @@
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
             "aot": true,
-            "assets": ["src/favicon.ico", "src/assets", "src/config.json"],
+            "assets": ["src/favicon.ico", "src/config.json", "src/assets", "src/version.json"],
             "styles": ["src/styles.scss"],
             "scripts": ["node_modules/govuk-frontend/govuk/all.js"],
             "allowedCommonJsDependencies": [
@@ -37,8 +40,20 @@
               "graphql-tag",
               "zen-observable",
               "nouislider",
-              "@mapbox/mapbox-gl-geocoder"
-            ]
+              "@mapbox/mapbox-gl-geocoder",
+              "pdfmake/build/pdfmake.js",
+              "geojson-equality",
+              "density-clustering",
+              "skmeans",
+              "rbush",
+              "geojson-rbush",
+              "deep-equal",
+              "rgbcolor",
+              "mapbox-gl",
+              "svgson",
+              "govuk-frontend"
+            ],
+            "verbose": false
           },
           "configurations": {
             "production": {
@@ -67,8 +82,17 @@
                   "maximumError": "10kb"
                 }
               ]
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
             }
-          }
+          },
+          "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
@@ -78,8 +102,12 @@
           "configurations": {
             "production": {
               "browserTarget": "raa-client:build:production"
+            },
+            "development": {
+              "browserTarget": "raa-client:build:development"
             }
-          }
+          },
+          "defaultConfiguration": "development"
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
@@ -120,9 +148,8 @@
       }
     }
   },
-  "defaultProject": "raa-client",
   "cli": {
     "analytics": false,
-    "defaultCollection": "@angular-eslint/schematics"
+    "schematicCollections": ["@angular-eslint/schematics"]
   }
 }

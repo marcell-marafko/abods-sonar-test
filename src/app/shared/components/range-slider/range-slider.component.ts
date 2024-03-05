@@ -1,4 +1,5 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewEncapsulation } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, ViewEncapsulation } from '@angular/core';
+import { NouisliderComponent } from 'ng2-nouislider';
 import { Subject } from 'rxjs';
 import { debounceTime, pairwise, startWith, takeUntil } from 'rxjs/operators';
 
@@ -11,18 +12,28 @@ import { debounceTime, pairwise, startWith, takeUntil } from 'rxjs/operators';
 export class RangeSliderComponent implements OnInit, OnDestroy {
   @Input() min!: number;
   @Input() max!: number;
+  @Input() connect: boolean[] = [false, true, false];
+  @Input() lowerEndLimit?: number;
+  @Input() upperStartLimit?: number;
 
   change = new Subject<[number, number]>();
-  destroyed = new Subject();
+  destroyed = new Subject<void>();
 
   sliding = false;
 
-  _value: [number, number] = [this.min, this.max];
-  get value(): [number, number] {
-    return this._value;
-  }
-  set value(val: [number, number]) {
-    this.change.next(val);
+  value: [number, number] = [this.min, this.max];
+
+  @ViewChild('nouislider') slider!: NouisliderComponent;
+
+  onSliderChange(value: [number, number]) {
+    if (this.lowerEndLimit && value[0] > this.lowerEndLimit) {
+      value = [this.lowerEndLimit, value[1]];
+      this.slider.writeValue(value);
+    } else if (this.upperStartLimit && value[1] < this.upperStartLimit) {
+      value = [value[0], this.upperStartLimit];
+      this.slider.writeValue(value);
+    }
+    this.change.next(value);
   }
 
   @Input() set lower(val: number) {
@@ -30,7 +41,7 @@ export class RangeSliderComponent implements OnInit, OnDestroy {
     if (this.sliding) {
       return;
     }
-    this._value = [val, this._value[1]];
+    this.value = [val, this.value[1]];
   }
   @Output() lowerChange = new EventEmitter<number>();
   @Input() set upper(val: number) {
@@ -38,7 +49,7 @@ export class RangeSliderComponent implements OnInit, OnDestroy {
     if (this.sliding) {
       return;
     }
-    this._value = [this._value[0], val];
+    this.value = [this.value[0], val];
   }
   @Output() upperChange = new EventEmitter<number>();
 

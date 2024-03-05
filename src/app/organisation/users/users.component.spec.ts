@@ -1,7 +1,7 @@
 import { APP_BASE_HREF } from '@angular/common';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { byLabel, byText, byTextContent, createHostFactory, SpectatorHost } from '@ngneat/spectator';
+import { byText, byTextContent, createHostFactory, SpectatorHost } from '@ngneat/spectator';
 import { ApolloTestingModule } from 'apollo-angular/testing';
 import { NgxSmartModalModule } from 'ngx-smart-modal';
 import { of } from 'rxjs';
@@ -178,11 +178,13 @@ describe('UsersComponent', () => {
       ],
     };
 
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(
       of({
         roles: [{ name: 'Administrator' }],
       })
     );
+    spyOnProperty(authService, 'authenticatedUserIsAdmin').and.returnValue(true);
+    spyOnProperty(authService, 'authenticatedUserIsOrgUser').and.returnValue(true);
     spyOn(service, 'listUsers$').and.returnValue(of([person]));
 
     spectator.detectChanges();
@@ -222,7 +224,7 @@ describe('UsersComponent', () => {
       ],
     };
 
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(
       of({
         roles: [{ name: 'Staff' }],
       })
@@ -237,135 +239,5 @@ describe('UsersComponent', () => {
     );
 
     expect(editLink).toBeFalsy();
-  });
-
-  it('should allow org admin to invite a new user', async () => {
-    const organisationId = '43';
-    const inviteEmail = 'email@domain.com';
-    const inviteRole = orgRoles[1];
-
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(
-      of({
-        roles: [{ name: 'Administrator', scope: 'organisation' }],
-        organisation: { id: organisationId },
-      })
-    );
-
-    spectator.detectChanges();
-    await spectator.fixture.whenStable();
-
-    const inviteButton = spectator.query(byText('Invite a new user', { selector: 'button' }));
-
-    expect(inviteButton).toBeTruthy();
-
-    if (inviteButton) {
-      spectator.click(inviteButton);
-
-      expect(spectator.query(byTextContent(/Invite a user/, { selector: '.modal' }))).toBeTruthy();
-
-      spectator.typeInElement(inviteEmail, byLabel('Email address'));
-      spectator.blur(byLabel('Email address'));
-      spectator.click(byLabel(inviteRole.name));
-
-      const inviteUserSpy = spyOn(service, 'inviteUser$').and.returnValue(of({ success: true }));
-
-      spectator.click(byText('Invite user'));
-
-      expect(inviteUserSpy).toHaveBeenCalledTimes(1);
-      expect(inviteUserSpy).toHaveBeenCalledWith(inviteEmail, inviteRole.id, organisationId);
-
-      expect(spectator.query(byText(/Invite sent/))).toBeTruthy();
-    }
-  });
-
-  it('should not allow org staff to invite a new user', async () => {
-    const organisationId = '43';
-
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(
-      of({
-        roles: [{ name: 'Staff', scope: 'organisation' }],
-        organisation: { id: organisationId },
-      })
-    );
-
-    spectator.detectChanges();
-    await spectator.fixture.whenStable();
-
-    const inviteButton = spectator.query(byText('Invite a new user', { selector: 'button' }));
-
-    expect(inviteButton).toBeFalsy();
-  });
-
-  const openInviteModal = async (organisationId = '43') => {
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(
-      of({
-        roles: [{ name: 'Administrator', scope: 'organisation' }],
-        organisation: { id: organisationId },
-      })
-    );
-
-    spectator.detectChanges();
-    await spectator.fixture.whenStable();
-
-    spectator.click(byText('Invite a new user', { selector: 'button' }));
-  };
-
-  it('should validate invite email', async () => {
-    await openInviteModal();
-
-    const inviteUserSpy = spyOn(service, 'inviteUser$').and.returnValue(of({ success: true }));
-    spectator.typeInElement('thisisnotanemailaddress', byLabel('Email address'));
-    spectator.blur(byLabel('Email address'));
-
-    spectator.click(byLabel('Staff'));
-
-    spectator.click(byText('Invite user'));
-
-    expect(inviteUserSpy).toHaveBeenCalledTimes(0);
-    expect(spectator.query(byText(/valid email address/))).toBeTruthy();
-  });
-
-  it('should require invite email', async () => {
-    await openInviteModal();
-
-    const inviteUserSpy = spyOn(service, 'inviteUser$').and.returnValue(of({ success: true }));
-    spectator.click(byLabel('Staff'));
-
-    spectator.click(byText('Invite user'));
-
-    expect(inviteUserSpy).toHaveBeenCalledTimes(0);
-    expect(spectator.query(byText('This field is required.'))).toBeTruthy();
-  });
-
-  it('should require invite role', async () => {
-    await openInviteModal();
-
-    const inviteUserSpy = spyOn(service, 'inviteUser$').and.returnValue(of({ success: true }));
-    spectator.typeInElement('this@isanemail.address', byLabel('Email address'));
-    spectator.blur(byLabel('Email address'));
-
-    spectator.click(byText('Invite user'));
-
-    expect(inviteUserSpy).toHaveBeenCalledTimes(0);
-    expect(spectator.query(byText('This field is required.'))).toBeTruthy();
-  });
-
-  it('should show error if invite fails', async () => {
-    const errorMessage = 'Invite failed error';
-
-    await openInviteModal();
-
-    spectator.typeInElement('email@address.com', byLabel('Email address'));
-    spectator.blur(byLabel('Email address'));
-
-    spectator.click(byLabel('Staff'));
-
-    const consoleWarn = spyOn(console, 'warn');
-    spyOn(service, 'inviteUser$').and.returnValue(of({ success: false, error: errorMessage }));
-
-    spectator.click(byText('Invite user'));
-
-    expect(spectator.query(byText(errorMessage))).toBeTruthy();
-    expect(consoleWarn).toHaveBeenCalledWith('Error inviting user', errorMessage);
   });
 });

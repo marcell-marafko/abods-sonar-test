@@ -1,44 +1,50 @@
-import { Component, ElementRef, EventEmitter, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
+import { PanelService } from './panel.service';
+import { Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { DynamicPanelComponentLoaderService } from './dynamic-panel-component-loader.service';
+import { DynamicPanelComponentHostDirective } from './dynamic-panel-component-host.directive';
+
 @Component({
   selector: 'app-panel',
   templateUrl: './panel.component.html',
   styleUrls: ['./panel.component.scss'],
+  providers: [DynamicPanelComponentLoaderService],
 })
-export class PanelComponent {
-  @Output() closing = new EventEmitter();
-  @Output() opening = new EventEmitter();
-
+export class PanelComponent implements AfterViewInit, OnDestroy {
   @ViewChild('closeButton') closeButton?: ElementRef;
-  isOpen = false;
+  @ViewChild(DynamicPanelComponentHostDirective, { static: true })
+  dynamicComponentHost!: DynamicPanelComponentHostDirective;
+  isOpen: Observable<boolean> = this.panelService.isOpen$;
 
-  toggle() {
-    if (this.isOpen) {
-      this.close();
-    } else {
-      this.open();
-    }
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private panelService: PanelService,
+    private cd: ChangeDetectorRef,
+    private dynamicComponentLoaderService: DynamicPanelComponentLoaderService
+  ) {}
+
+  ngAfterViewInit(): void {
+    this.panelService.component$.pipe(takeUntil(this.destroy$)).subscribe((component) => {
+      if (component) {
+        this.dynamicComponentLoaderService.loadComponent(
+          component,
+          this.dynamicComponentHost.viewContainerRef,
+          this.destroy$
+        );
+        this.cd.detectChanges();
+      }
+    });
   }
 
-  open() {
-    this.opening.emit();
-    this.isOpen = true;
-    setTimeout(() => this.closeButton?.nativeElement.focus(), 0);
-    document.body.classList.add('js-panel-open');
+  ngOnDestroy(): void {
+    this.dynamicComponentLoaderService.destroyComponent();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   close() {
-    this.closing.emit();
-    this.isOpen = false;
-    document.body.classList.remove('js-panel-open');
-  }
-
-  panelClickOutside(e: Event) {
-    if (this.isOpen) {
-      const selectedEl = e.target as HTMLElement;
-      const panelToggle = document.getElementById('panel-toggle');
-      if (panelToggle && !panelToggle.contains(selectedEl)) {
-        this.close();
-      }
-    }
+    this.panelService.close();
   }
 }

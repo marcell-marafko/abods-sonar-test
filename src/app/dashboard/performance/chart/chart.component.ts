@@ -134,6 +134,15 @@ export class PerformanceChartComponent extends BaseChart implements AfterViewIni
     label.label.fontSize = 19;
     this.chart.maskBullets = false;
 
+    // Add screen reader description to bar elements
+    series.columns.template.adapter.add('readerDescription', (value, target) => {
+      const category = (target.dataItem as am4charts.ColumnSeriesDataItem).categoryX as PerformanceCategories;
+      if (category) {
+        return `${this.legendLabels[category]} bar value is {value}%`;
+      }
+      return 'Bar value is {value}%';
+    });
+
     return series;
   }
 

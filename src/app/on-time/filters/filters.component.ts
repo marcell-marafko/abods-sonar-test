@@ -1,5 +1,10 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { DayOfWeekFlagsInputType, PerformanceFiltersInputType } from 'src/generated/graphql';
+import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
+import { DayOfWeekFlagsInputType, PerformanceFiltersInputType } from '../../../generated/graphql';
+import { AdminAreaService } from '../admin-area/admin-area.service';
+import { isNotNullOrUndefined } from '../../shared/rxjs-operators';
+import { map, switchMap, take, takeUntil } from 'rxjs/operators';
+import { MultiselectCheckboxOption } from '../../shared/gds/multiselect-checkbox/multiselect-checkbox.component';
+import { BehaviorSubject, of, Subject } from 'rxjs';
 
 const defaultDayOfWeekFlags: DayOfWeekFlagsInputType = {
   monday: true,
@@ -16,7 +21,7 @@ const defaultDayOfWeekFlags: DayOfWeekFlagsInputType = {
   templateUrl: './filters.component.html',
   styleUrls: ['./filters.component.scss'],
 })
-export class FiltersComponent {
+export class FiltersComponent implements OnDestroy {
   oldFilters?: PerformanceFiltersInputType;
   dayOfWeekFlags: DayOfWeekFlagsInputType = defaultDayOfWeekFlags;
   _startTime = '00:00';
@@ -72,16 +77,50 @@ export class FiltersComponent {
       value = {};
     }
 
+    this.setAdminAreaDropdown(value);
     this.oldFilters = value;
     this.setFilters(value);
   }
+  @Input() showAdminAreas = true;
+
+  adminAreas$ = new BehaviorSubject<MultiselectCheckboxOption[]>([]);
+  adminAreaIds: string[] = [];
 
   @Output() filtersChange = new EventEmitter<PerformanceFiltersInputType>();
   @Output() closeFilters = new EventEmitter();
 
+  private destroy$ = new Subject<void>();
+
+  constructor(private adminAreaService: AdminAreaService) {}
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  setAdminAreaDropdown(newFilters: PerformanceFiltersInputType): void {
+    const oldOpId = this.oldFilters && this.oldFilters.operatorIds && this.oldFilters.operatorIds[0];
+    const newOpId = newFilters && newFilters.operatorIds && newFilters.operatorIds[0];
+    if (oldOpId !== newOpId) {
+      this.adminAreaService
+        .fetchAdminAreasForOperator(newOpId as string)
+        .pipe(
+          takeUntil(this.destroy$),
+          map((areas) =>
+            areas
+              .map((area) => <MultiselectCheckboxOption>{ label: area.name, value: area.id })
+              .sort((a: MultiselectCheckboxOption, b: MultiselectCheckboxOption) => a.label.localeCompare(b.label))
+          )
+        )
+        .subscribe((data) => {
+          this.adminAreas$.next(data);
+        });
+    }
+  }
+
   private setFilters(value: PerformanceFiltersInputType) {
     this.validationErrors = {};
-    const { dayOfWeekFlags, startTime, endTime, minDelay, maxDelay, excludeItoLineId } = value;
+    const { dayOfWeekFlags, startTime, endTime, minDelay, maxDelay, excludeItoLineId, adminAreaIds } = value;
 
     this.dayOfWeekFlags = dayOfWeekFlags ? { ...dayOfWeekFlags } : { ...defaultDayOfWeekFlags };
     this.startTime = startTime ?? '00:00';
@@ -89,6 +128,20 @@ export class FiltersComponent {
     this.minDelay = minDelay ?? null;
     this.maxDelay = maxDelay ?? null;
     this.excludeItoLineId = excludeItoLineId ?? '';
+    this.setSelectedAdminAreaIds(adminAreaIds as string[]);
+  }
+
+  private setSelectedAdminAreaIds(adminAreaIds: string[]) {
+    of(adminAreaIds)
+      .pipe(
+        take(1),
+        switchMap(() => this.adminAreas$)
+      )
+      .subscribe((adminAreas) => {
+        const adminAreasIds: string[] = adminAreaIds?.filter(isNotNullOrUndefined) ?? [];
+        // We only want to show admin areas that this operator operates in for the admin area dropdown
+        this.adminAreaIds = adminAreasIds.filter((id) => adminAreas.map((area) => area.value).includes(id));
+      });
   }
 
   toggleDayOfTheWeek(k: keyof DayOfWeekFlagsInputType) {
@@ -156,8 +209,16 @@ export class FiltersComponent {
       newFilters.excludeItoLineId = this.excludeItoLineId;
     }
 
+    if (this.adminAreaIds.length) {
+      newFilters.adminAreaIds = this.adminAreaIds;
+    }
+
+    if (!this.showAdminAreas) {
+      // We preserve the admin areas for returning to All services page
+      newFilters.adminAreaIds = this.oldFilters?.adminAreaIds as string[];
+    }
+
     this.filtersChange.emit(newFilters);
-    this.closeFilters.emit();
   }
 
   cancel() {

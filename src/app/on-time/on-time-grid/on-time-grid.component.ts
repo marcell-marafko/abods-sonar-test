@@ -1,6 +1,5 @@
-import { Component, Input, ViewChild } from '@angular/core';
-import { AgGridEvent, ColDef, FilterChangedEvent, GridOptions, ValueGetterParams } from 'ag-grid-community';
-import { Subject } from 'rxjs';
+import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { ColDef, FilterChangedEvent, GridOptions, ValueGetterParams } from 'ag-grid-community';
 import {
   NoRowsOverlayComponent,
   NoRowsOverlayParams,
@@ -92,17 +91,35 @@ export class OnTimeGridComponent {
       this._selectedColumns = this.loadColumns();
       this.selectedColumnsSet = true;
     }
-    _map(columnDescriptions, ({ colId, isHideable }) => {
-      const control = this.formBuilder.control({ value: this.selectedColumns.includes(colId), disabled: !isHideable });
-      if (this.displayOptionsForm.get(colId)) {
-        this.displayOptionsForm.setControl(colId, control);
+    this.resetDisplayOptions();
+  }
+
+  resetDisplayOptions() {
+    _map(this.columnDescriptions, ({ colId, isHideable }) => {
+      let control = this.displayOptionsForm.get(colId);
+      const value = this.selectedColumns.includes(colId);
+      if (control) {
+        control.setValue(value);
+        if (isHideable) {
+          control.enable();
+        } else {
+          control.disable();
+        }
       } else {
+        control = this.formBuilder.control({ value, disabled: !isHideable });
         this.displayOptionsForm.addControl(colId, control);
       }
     });
   }
 
-  @Input() noun!: string;
+  private _noun?: string;
+  @Input() get noun(): string {
+    return this._noun ?? '';
+  }
+  set noun(value: string) {
+    this._noun = value;
+    this.overlayParams.message = this.initialNoRowsMessage;
+  }
 
   get initialNoRowsMessage() {
     return `No ${this.noun + ' '}data found`;
@@ -119,6 +136,8 @@ export class OnTimeGridComponent {
   @Input() paginate = true;
 
   @Input() showFilter = true;
+
+  @Output() gridReady = new EventEmitter();
 
   get mode() {
     return this._mode;
@@ -151,11 +170,8 @@ export class OnTimeGridComponent {
     this._mode = 'percent';
   }
 
-  gridReady$ = new Subject<AgGridEvent>();
-  displayedColumnsChanged$ = new Subject<AgGridEvent>();
-
-  overlayParams: NoRowsOverlayParams = {
-    message: this.initialNoRowsMessage,
+  overlayParams: NoRowsOverlayParams = <NoRowsOverlayParams>{
+    message: `No data found`,
   };
 
   gridOptions: GridOptions = {
@@ -163,7 +179,7 @@ export class OnTimeGridComponent {
     suppressDragLeaveHidesColumns: true,
     suppressCellSelection: false,
     onFirstDataRendered: this.headerHeightSetter.bind(this),
-    noRowsOverlayComponentFramework: NoRowsOverlayComponent,
+    noRowsOverlayComponent: NoRowsOverlayComponent,
     noRowsOverlayComponentParams: () => this.overlayParams,
     suppressPropertyNamesCheck: true,
   };
@@ -184,9 +200,8 @@ export class OnTimeGridComponent {
   gridFilter?: string;
 
   onTimeGridReady(): void {
-    this.onTimeGrid?.gridApi?.sizeColumnsToFit();
-    this.onTimeGrid?.gridApi?.resetRowHeights();
     this.columnsChanged();
+    this.gridReady.emit();
   }
 
   columnsChanged(): void {
@@ -223,16 +238,20 @@ export class OnTimeGridComponent {
     this.onTimeGrid?.export(this.csvFilename ?? 'export');
   }
 
+  columnName(colId: string) {
+    return `OTP_${this.noun}_column_${colId}`;
+  }
+
   saveColumns(val: string[]) {
     _map(this.columnDescriptions, ({ colId }) => {
-      localStorage.setItem(`OTPColumn_${colId}`, val.includes(colId) ? 'show' : 'hide');
+      localStorage.setItem(this.columnName(colId), val.includes(colId) ? 'show' : 'hide');
     });
   }
 
   loadColumns(): string[] {
     const selectedColumns: string[] = [];
     _forEach(this.columnDescriptions, ({ colId, isHideable, isDefaultShown }) => {
-      const stored = localStorage.getItem(`OTPColumn_${colId}`);
+      const stored = localStorage.getItem(this.columnName(colId));
       if (!isHideable || (stored ? stored === 'show' : isDefaultShown)) {
         selectedColumns.push(colId);
       }
@@ -241,6 +260,8 @@ export class OnTimeGridComponent {
   }
 
   openDisplayOptions() {
+    this.resetDisplayOptions();
+
     this.ngxSmartModalService.open('displayOptionsModal');
   }
 

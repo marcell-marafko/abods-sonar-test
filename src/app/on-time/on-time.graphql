@@ -79,6 +79,7 @@ query onTimeStopPerformanceList($params: PerformanceInputType!) {
       stopId
       stopInfo {
         stopId
+        sourceId
         stopName
         stopLocation {
           latitude
@@ -111,6 +112,7 @@ query onTimeOperatorPerformanceList($params: PerformanceInputType!) {
       }
       items {
         nocCode
+        operatorId
         name
         early
         onTime

@@ -3,7 +3,7 @@
 
 .on-time-overview {
   &__stats {
-    margin-top: govuk-spacing(6);
+    margin-top: govuk-spacing(2);
     margin-bottom: govuk-spacing(7);
     margin-left: -(govuk-spacing(3));
     margin-right: -(govuk-spacing(3));
@@ -30,11 +30,30 @@
 
 @include bp($desktop) {
   .on-time-overview {
-    &__stats {
+    &__stats:not(&__stats--nested) {
       flex-wrap: nowrap;
+      .on-time-overview__stat {
+        flex-basis: calc(25% - #{govuk-spacing(6)});
+      }
     }
-    &__stat {
-      flex-basis: calc(25% - #{govuk-spacing(6)});
+  }
+}
+
+.helpdesk-link {
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  @include govuk-font(19);
+  svg-icon {
+    display: inline-flex;
+    color: govuk-colour('blue');
+    width: 20px;
+    height: 20px;
+    margin-right: govuk-spacing(1);
+  }
+  &:focus {
+    svg-icon {
+      color: govuk-colour('black');
     }
   }
 }

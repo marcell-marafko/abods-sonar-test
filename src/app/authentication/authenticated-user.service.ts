@@ -7,17 +7,38 @@ import { UserFragment } from 'src/generated/graphql';
   providedIn: 'root',
 })
 export class AuthenticatedUserService {
-  isAuthenticatedSubject = new ReplaySubject<boolean>(1);
-  userSubject = new ReplaySubject<UserFragment | null>(1);
+  private isAuthenticatedSubject = new ReplaySubject<boolean>(1);
+  private userSubject = new ReplaySubject<UserFragment | null>(1);
+  private user: UserFragment | null = null;
 
-  get isAuthenticated(): Observable<boolean> {
+  get isAuthenticated$(): Observable<boolean> {
     return this.isAuthenticatedSubject.asObservable();
   }
 
-  get authenticatedUser(): Observable<UserFragment> {
+  get authenticatedUser$(): Observable<UserFragment> {
     return this.userSubject.pipe(
       filter((u) => u !== null),
       map((u) => u as UserFragment)
     );
+  }
+
+  get authenticatedUserIsAdmin(): boolean {
+    return this.user?.roles.some(({ name }) => name === 'Administrator') ?? false;
+  }
+  get authenticatedUserIsOrgUser(): boolean {
+    return this.user?.roles.some(({ scope }) => scope === 'organisation') ?? false;
+  }
+
+  setUser(user: UserFragment | null) {
+    this.user = user;
+    this.userSubject.next(user);
+  }
+
+  authenticateUser() {
+    this.isAuthenticatedSubject.next(true);
+  }
+
+  deauthenticateUser() {
+    this.isAuthenticatedSubject.next(false);
   }
 }

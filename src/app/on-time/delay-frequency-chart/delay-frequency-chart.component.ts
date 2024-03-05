@@ -5,11 +5,22 @@ import { OnTimeService, PerformanceParams } from '../on-time.service';
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_animated from '@amcharts/amcharts4/themes/animated';
-import { ChartService } from 'src/app/shared/components/amcharts/chart.service';
+import { ChartService } from '../../shared/components/amcharts/chart.service';
 import { switchMap } from 'rxjs/operators';
 import { PerformanceCategories } from '../../dashboard/dashboard.types';
 import { AsyncStatus, withStatus } from '../pending.model';
 import { BaseChart } from '../../shared/components/amcharts/base-chart';
+import { DelayFrequencyType } from '../../../generated/graphql';
+
+const createTooltipHTML = (data: DelayFrequencyType) => `
+  <div>${data.bucket > 0 ? '+' : ''}{bucket} ${data.bucket == 1 || data.bucket == -1 ? 'minute' : 'minutes'}</div>
+  <div><strong>{frequency} ${data.frequency == 1 ? 'stop' : 'stops'} </strong></div>
+`;
+
+const tooltipHTML = `
+  <div>{bucket} minutes</div>
+  <div><strong>{frequency} stops</strong></div>
+`;
 
 @Component({
   selector: 'app-delay-frequency-chart',
@@ -80,6 +91,7 @@ export class DelayFrequencyChartComponent extends BaseChart implements AfterView
     categoryAxis.renderer.labels.template.fill = this.chartService.colorMap.legendaryGrey;
     categoryAxis.numberFormatter = new am4core.NumberFormatter();
     categoryAxis.numberFormatter.numberFormat = "'+'###|###|#";
+    categoryAxis.cursorTooltipEnabled = false;
 
     const valueAxis = this.chart.yAxes.push(new am4charts.ValueAxis());
     valueAxis.title.text = 'Number of stops';
@@ -87,6 +99,7 @@ export class DelayFrequencyChartComponent extends BaseChart implements AfterView
     valueAxis.renderer.labels.template.fontSize = 13;
     valueAxis.renderer.labels.template.fill = this.chartService.colorMap.legendaryGrey;
     valueAxis.renderer.line.strokeOpacity = 0.15;
+    valueAxis.cursorTooltipEnabled = false;
 
     const series = this.chart.series.push(new am4charts.ColumnSeries());
     series.dataFields.valueY = 'frequency';
@@ -104,6 +117,7 @@ export class DelayFrequencyChartComponent extends BaseChart implements AfterView
     legend.labels.template.text = `[bold]{name}[/] [${this.chartService.colorMap.legendaryGrey}]{hint}[/]`;
     legend.labels.template.fontSize = 16;
     legend.marginTop = 30;
+    legend.marginBottom = 30;
     legend.itemContainers.template.paddingTop = 0;
     legend.itemContainers.template.paddingBottom = 0;
     legend.useDefaultMarker = false;
@@ -122,6 +136,45 @@ export class DelayFrequencyChartComponent extends BaseChart implements AfterView
     }
 
     legend.data = Object.values(this.legend);
+
+    // Create cursor
+    this.createCursor(series);
+    // Create tooltip
+    this.createTooltip(series);
+  }
+
+  private createCursor(series: am4charts.ColumnSeries) {
+    this.chart.cursor = new am4charts.XYCursor();
+    this.chart.cursor.behavior = 'none';
+    this.chart.cursor.lineY.disabled = true;
+    this.chart.cursor.lineX.stroke = this.chartService.colorMap.black;
+    this.chart.cursor.lineX.strokeWidth = 2;
+    this.chart.cursor.lineX.strokeOpacity = 1;
+    this.chart.cursor.snapToSeries = [series];
+  }
+
+  private createTooltip(series: am4charts.ColumnSeries) {
+    if (series.tooltip) {
+      series.tooltip.pointerOrientation = 'vertical';
+      series.tooltip.animationDuration = 150;
+      series.tooltip.getFillFromObject = false;
+      series.tooltip.stroke = this.chartService.colorMap.black;
+      series.tooltip.label.fill = this.chartService.colorMap.black;
+      series.tooltip.label.padding(10, 10, 5, 10);
+      series.tooltip.background.cornerRadius = 0;
+      series.tooltip.background.fillOpacity = 1;
+      series.tooltip.background.filters.clear();
+      series.tooltip.background.fill = am4core.color('#fff');
+      series.tooltip.background.stroke = this.chartService.colorMap.black;
+      // Use adapter to account for pluralization
+      series.adapter.add('tooltipHTML', (value, target) => {
+        const data = target.tooltipDataItem.dataContext as DelayFrequencyType;
+        if (data) {
+          return createTooltipHTML(data);
+        }
+        return tooltipHTML;
+      });
+    }
   }
 
   ngOnDestroy(): void {

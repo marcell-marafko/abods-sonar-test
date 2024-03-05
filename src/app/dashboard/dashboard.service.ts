@@ -9,9 +9,10 @@ import {
   DashboardServiceRankingGQL,
   OperatorDashboardFragment,
   OperatorDashboardVehicleCountsFragment,
+  PerformanceFiltersInputType,
   RankingOrder,
   ServicePerformanceInputType,
-} from 'src/generated/graphql';
+} from '../../generated/graphql';
 import { PerformanceCategories } from './dashboard.types';
 import { PerformanceParams } from '../on-time/on-time.service';
 
@@ -43,11 +44,12 @@ export class DashboardService {
       .pipe(map(({ data }) => data?.operators?.items?.map((x) => x as OperatorDashboardVehicleCountsFragment) ?? []));
   }
 
-  getPunctualityStats(nocCode: string | null, from: DateTime, to: DateTime): Observable<PunctualityQueryResult> {
-    const params: PerformanceParams = { fromTimestamp: from.toJSDate(), toTimestamp: to.toJSDate(), filters: {} };
-    if (nocCode) {
-      params.filters = { nocCodes: [nocCode] };
-    }
+  getPunctualityStats(
+    filters: PerformanceFiltersInputType,
+    from: DateTime,
+    to: DateTime
+  ): Observable<PunctualityQueryResult> {
+    const params: PerformanceParams = { fromTimestamp: from.toJSDate(), toTimestamp: to.toJSDate(), filters };
     return this.dashboardPerformanceStatsQuery
       .fetch(
         { params },
@@ -55,12 +57,12 @@ export class DashboardService {
         { fetchPolicy: 'no-cache' }
       )
       .pipe(
-        map((data) => ({ result: data.data?.onTimePerformance?.punctualityOverview ?? null, success: !data.errors }))
+        map(({ data, errors }) => ({ result: data?.onTimePerformance?.punctualityOverview ?? null, success: !errors }))
       );
   }
 
   getServiceRanking(
-    nocCode: string | null,
+    filters: PerformanceFiltersInputType,
     from: DateTime,
     to: DateTime,
     order: RankingOrder,
@@ -71,11 +73,8 @@ export class DashboardService {
       fromTimestamp: from.toJSDate(),
       toTimestamp: to.toJSDate(),
       order,
-      filters: {},
+      filters,
     };
-    if (nocCode) {
-      params.filters = { nocCodes: [nocCode] };
-    }
     return this.dashboardServiceRankingQuery
       .fetch(
         {
@@ -86,6 +85,6 @@ export class DashboardService {
         // Currently there's no way for Apollo to cache this without an id field, so disable the cache
         { fetchPolicy: 'no-cache' }
       )
-      .pipe(map((data) => data.data?.onTimePerformance?.servicePunctuality));
+      .pipe(map(({ data }) => data?.onTimePerformance?.servicePunctuality));
   }
 }

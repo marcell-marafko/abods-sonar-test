@@ -74,8 +74,8 @@ describe('DayOfWeekChartComponent', () => {
     spy.calls.reset();
 
     const inputParams = cloneDeep(onTimeInputParams);
-    inputParams.fromTimestamp = DateTime.fromISO('2021-02-01T00:00:00Z').toJSDate();
-    inputParams.toTimestamp = DateTime.fromISO('2021-02-07T23:59:59.999Z').toJSDate();
+    inputParams.fromTimestamp = DateTime.fromISO('2021-02-01T00:00:00+00:00');
+    inputParams.toTimestamp = DateTime.fromISO('2021-02-07T23:59:59.999+00:00');
 
     component.params = inputParams;
 

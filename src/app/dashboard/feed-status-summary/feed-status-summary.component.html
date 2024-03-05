@@ -18,10 +18,10 @@
           <app-tooltip [message]="operator.nocCode" [selectable]="true">{{ operator.name }}</app-tooltip>
         </td>
         <td class="feed-status-summary__count feed-status-summary__count--alerts">
-          {{ operator.feedMonitoring.liveStats?.feedAlerts || 0 }}
+          {{ operator.feedMonitoring.liveStats.feedAlerts || 0 }}
         </td>
         <td class="feed-status-summary__count feed-status-summary__count--errors">
-          {{ operator.feedMonitoring.liveStats?.feedErrors || 0 }}
+          {{ operator.feedMonitoring.liveStats.feedErrors || 0 }}
         </td>
       </tr>
     </tbody>

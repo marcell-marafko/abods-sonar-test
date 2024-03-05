@@ -1,5 +1,6 @@
 @import 'src/assets/styles/settings/settings';
 @import 'src/assets/styles/helpers/helpers';
+@import 'src/app/shared/components/date-range/date-control-variables.scss';
 
 :host {
   position: relative;
@@ -13,15 +14,40 @@
   margin-top: -2px;
   width: 90vw;
   background: govuk-colour('white');
-  border: 2px solid govuk-colour('black');
+  border: $border-width solid govuk-colour('black');
   box-sizing: border-box;
+  width: calc($calendar-width + ($date-range-padding * 2) + ($border-width * 2));
+
+  &__table {
+    border-spacing: 0px 0px;
+  }
+  &__table-cell {
+    padding: 0px;
+    &--included {
+      background-color: govuk-colour('light-grey');
+    }
+    &--end {
+      background-color: govuk-colour('light-grey');
+      border-top-right-radius: 999em;
+      border-bottom-right-radius: 999em;
+    }
+    &--start {
+      background-color: govuk-colour('light-grey');
+      border-top-left-radius: 999em;
+      border-bottom-left-radius: 999em;
+    }
+  }
 
   &__date-range {
-    padding: govuk-spacing(4);
+    padding: $date-range-padding;
   }
 
   &__calendar-wrapper {
     margin-bottom: govuk-spacing(1);
+  }
+
+  &__calendar {
+    width: $calendar-width;
   }
 
   &__calendar-header {
@@ -71,14 +97,10 @@
     align-items: center;
   }
 
-  &__calendar-days {
-    display: flex;
-    flex-wrap: wrap;
-  }
-
   &__day,
   &__day-name {
-    width: calc(100% / 7);
+    width: $day-width;
+    height: $day-width;
     display: inline-flex;
     position: relative;
     color: govuk-colour('black');
@@ -93,7 +115,17 @@
     position: relative;
     &:hover {
       cursor: pointer;
-      background-color: govuk-colour('light-grey');
+      &::after {
+        background-color: $light-grey-alpha;
+        border-radius: 100%;
+        bottom: 0;
+        content: '';
+        left: 0;
+        pointer-events: none;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
     }
     &--today {
       font-weight: $govuk-font-weight-bold;
@@ -105,32 +137,35 @@
     &--start,
     &--end {
       color: govuk-colour('white');
-      &:hover {
-        background-color: darken(govuk-colour('blue'), 10);
-      }
     }
     &--start {
-      border-top-left-radius: 999em;
-      border-bottom-left-radius: 999em;
+      border-radius: 100%;
       background-color: govuk-colour('blue');
     }
     &--end {
-      border-top-right-radius: 999em;
-      border-bottom-right-radius: 999em;
+      border-radius: 100%;
       background-color: govuk-colour('blue');
     }
     &--included:not(.date-range-controls__day--end, .date-range-controls__day--start) {
-      background-color: govuk-colour('light-blue');
-      color: govuk-colour('white');
+      background-color: govuk-colour('light-grey');
       &:hover {
-        background-color: darken(govuk-colour('light-blue'), 10);
+        &::after {
+          background-color: $light-grey-alpha-darken;
+        }
       }
     }
     &--invisible {
       visibility: hidden;
     }
     &--saturday {
-      border-left: 1px solid $govuk-border-colour;
+      &::before {
+        content: '';
+        position: absolute;
+        border-left: 1px solid $govuk-border-colour;
+        top: 0;
+        bottom: 0;
+        left: -1px;
+      }
     }
   }
 
@@ -143,6 +178,6 @@
 
 @include bp($tablet) {
   .date-range-controls {
-    width: rem(720);
+    width: calc(($calendar-width * 2) + ($date-range-padding * 2) + ($border-width * 2) + $grid-gap);
   }
 }

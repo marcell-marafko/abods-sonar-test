@@ -10,7 +10,10 @@ import { GDSSpacingSizes } from 'src/app/shared/types';
       [attr.aria-disabled]="disabled"
       [disabled]="disabled"
       [type]="type"
+      [attr.id]="buttonId || null"
+      [attr.data-qa]="buttonId"
     >
+      <ng-content></ng-content>
       {{ text }}
     </button>
   `,
@@ -22,6 +25,7 @@ export class ButtonComponent {
   @Input() spaceBelow?: GDSSpacingSizes;
   @Input() spaceAbove?: GDSSpacingSizes;
   @Input() type: 'submit' | 'button' = 'button';
+  @Input() buttonId?: string;
 
   get buttonClasses() {
     return {

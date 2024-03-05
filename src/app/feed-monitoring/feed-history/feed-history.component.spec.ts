@@ -25,11 +25,7 @@ describe('FeedHistoryComponent', () => {
     component = spectator.component;
     service = spectator.inject(FeedMonitoringService);
 
-    component.vehicleStats = [
-      { timestamp: '2022-01-03', expected: 10, actual: 10 },
-      { timestamp: '2022-01-04', expected: 9, actual: 8 },
-      { timestamp: '2022-01-05', expected: 15, actual: 3 },
-    ];
+    spyOnProperty(service, 'listOperators', 'get').and.returnValue(of([{ nocCode: 'NOCODE', operatorId: 'OP01' }]));
   });
 
   it('should create', () => {
@@ -48,12 +44,12 @@ describe('FeedHistoryComponent', () => {
     );
   });
 
-  it('should take date from query string in UTC', () => {
+  it('should take date from query string', () => {
     spectator.setRouteParam('nocCode', 'NOCODE');
     spectator.setRouteQueryParam('date', '2020-05-04');
     spectator.detectChanges();
 
-    expect(component.date).toEqual(DateTime.utc(2020, 5, 4));
+    expect(component.date).toEqual(DateTime.local(2020, 5, 4));
   });
 
   it('should load data for nocCode and date', () => {
@@ -74,7 +70,7 @@ describe('FeedHistoryComponent', () => {
     spectator.detectChanges();
 
     expect(service.fetchOperatorHistory).toHaveBeenCalledTimes(1);
-    expect(service.fetchOperatorHistory).toHaveBeenCalledWith('NOCODE', DateTime.utc(2020, 5, 4));
+    expect(service.fetchOperatorHistory).toHaveBeenCalledWith('OP01', DateTime.local(2020, 5, 4));
   });
 
   it('should show selected date', () => {
@@ -118,7 +114,7 @@ describe('FeedHistoryComponent', () => {
     expect(navitems[5].heat).toBe(0);
 
     expect(navitems[1].heat).toBe(6);
-    expect(navitems[1].date).toEqual(DateTime.utc(2020, 11, 20));
+    expect(navitems[1].date).toEqual(DateTime.local(2020, 11, 20));
 
     spectator.click(byText('20 November'));
 
@@ -130,10 +126,7 @@ describe('FeedHistoryComponent', () => {
     );
   });
 
-  // This test bombs out with a router error to do with the `back-link` which I can't get to the bottom of
-  // In other components using `stubsEnabled: false` when creating the routing factory would fix this,
-  // but in this case that causes other tests to timeout. I'm stumped so leaving for now.
-  xit('should show "not found" if operator not loaded', () => {
+  it('should show "not found" if operator not loaded', () => {
     spyOn(service, 'fetchOperatorHistory').and.returnValue(of(null));
 
     spectator.setRouteParam('nocCode', 'NOCODE');
@@ -176,6 +169,28 @@ describe('FeedHistoryComponent', () => {
     expect(spectator.query(byText(/No data/))).toBeTruthy();
   });
 
+  it('should set vehicleStats for chart', () => {
+    const operator: OperatorFeedHistoryFragment = {
+      nocCode: 'NOCODE',
+      feedMonitoring: {
+        historicalStats: {},
+        vehicleStats: [
+          { timestamp: '2022-01-03', expected: 10, actual: 10 },
+          { timestamp: '2022-01-04', expected: 9, actual: 8 },
+          { timestamp: '2022-01-05', expected: 15, actual: 3 },
+        ],
+      },
+    };
+    spyOn(service, 'fetchOperatorHistory').and.returnValue(of(operator));
+
+    spectator.setRouteParam('nocCode', 'NOCODE');
+    spectator.setRouteQueryParam('date', '2020-05-04');
+
+    spectator.detectChanges();
+
+    expect(spectator.component.vehicleStats).toEqual(operator.feedMonitoring.vehicleStats);
+  });
+
   it(`should show operator update frequency`, () => {
     const operator: OperatorFeedHistoryFragment = {
       nocCode: 'NOCNOC',
@@ -188,7 +203,7 @@ describe('FeedHistoryComponent', () => {
     };
     spyOn(service, 'fetchOperatorHistory').and.returnValue(of(operator));
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
     spectator.setRouteQueryParam('date', '2020-05-04');
 
     spectator.detectChanges();
@@ -215,7 +230,7 @@ describe('FeedHistoryComponent', () => {
 
     spyOn(service, 'fetchOperatorHistory').and.returnValue(of(operator));
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
     spectator.setRouteQueryParam('date', '2020-05-04');
 
     spectator.detectChanges();

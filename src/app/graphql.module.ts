@@ -1,9 +1,9 @@
 import { NgModule } from '@angular/core';
 import { InMemoryCache, ServerError } from '@apollo/client/core';
-import { HttpLink } from 'apollo-angular-link-http';
+import { HttpLink } from 'apollo-angular/http';
 import { ConfigService } from './config/config.service';
-import { ApolloLink } from 'apollo-link';
-import { onError } from 'apollo-link-error';
+import { ApolloLink } from '@apollo/client/link/core';
+import { onError } from '@apollo/client/link/error';
 import { APOLLO_OPTIONS } from 'apollo-angular';
 import { Router } from '@angular/router';
 

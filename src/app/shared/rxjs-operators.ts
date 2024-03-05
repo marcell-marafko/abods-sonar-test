@@ -1,8 +1,16 @@
-import { OperatorFunction } from 'rxjs';
+import { merge, Observable, OperatorFunction } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 
 export function isNotNullOrUndefined<T>(value: T | undefined | null): value is T {
   return value !== null && value !== undefined;
+}
+
+export function ifNullOrUndefinedReturnEmptyString(value: string | undefined | null): string {
+  if (value !== null && value !== undefined) {
+    return value;
+  } else {
+    return '';
+  }
 }
 
 /**
@@ -24,4 +32,30 @@ export function assertNonNullish<T>(): OperatorFunction<T | null | undefined, T>
         return value;
       })
     );
+}
+
+type ObservableInputTuple<T> = {
+  [K in keyof T]: Observable<T[K]>;
+};
+
+/**
+ * Behaves like merge() but emits values as a tuple like combineAll().
+ *   combine(a$, b$).subscribe(([a, b]) => console.log(a, b));
+ *   a            ---A|
+ *   b            --------B----B|
+ *   combine(a,b) ---[A,]-[,B]-[,B]|
+ * @param sources
+ */
+export function combine<A extends readonly unknown[]>(sources: readonly [...ObservableInputTuple<A>]): Observable<A> {
+  return merge(
+    ...sources.map((source, index) =>
+      source.pipe(
+        map((value) => {
+          const values = new Array(sources.length);
+          values[index] = value;
+          return (values as unknown) as A;
+        })
+      )
+    )
+  );
 }

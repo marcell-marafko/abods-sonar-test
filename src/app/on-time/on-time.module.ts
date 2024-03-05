@@ -1,7 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule, DecimalPipe, PercentPipe } from '@angular/common';
 import { OnTimeRoutingModule } from './on-time-routing.module';
-import { OnTimeComponent } from './on-time.component';
 import { SharedModule } from '../shared/shared.module';
 import { LayoutModule } from '../layout/layout.module';
 import { DelayFrequencyChartComponent } from './delay-frequency-chart/delay-frequency-chart.component';
@@ -16,9 +15,7 @@ import { TimeOfDayChartComponent } from './time-of-day-chart/time-of-day-chart.c
 import { DayOfWeekChartComponent } from './day-of-week-chart/day-of-week-chart.component';
 import { StopsGridComponent } from './stops-grid/stops-grid.component';
 import { TimingRendererComponent } from './stops-grid/timing-renderer/timing-renderer.component';
-import { NoRowsOverlayComponent } from '../shared/components/ag-grid/no-rows-overlay/no-rows-overlay.component';
 import { OperatorGridComponent } from './operator-grid/operator-grid.component';
-import { RouterLinkCellRendererComponent } from '../shared/components/ag-grid/router-link-cell/router-link-cell.component';
 import { SparklineFactoryComponent } from './operator-grid/sparkline-factory/sparkline-factory.component';
 import { SparklineCellRendererComponent } from './operator-grid/sparkline-cell/sparkline-cell-renderer.component';
 import { NgxMapboxGLModule } from 'ngx-mapbox-gl';
@@ -27,10 +24,20 @@ import { ChartNoDataWrapperComponent } from './chart-no-data-wrapper/chart-no-da
 import { ExcessWaitTimeChartComponent } from './excess-wait-time-chart/excess-wait-time-chart.component';
 import { ServiceGridComponent } from './service-grid/service-grid.component';
 import { LuxonModule } from 'luxon-angular';
+import { FilterChipsComponent } from './filter-chips/filter-chips.component';
+import { ControlsComponent } from './controls/controls.component';
+import { AllOperatorsComponent } from './all-operators/all-operators.component';
+import { ViewOperatorComponent } from './view-operator/view-operator.component';
+import { ViewServiceComponent } from './view-service/view-service.component';
+import { AdminAreaMapComponent } from './admin-area/admin-area-map.component';
+import { OperatorNotFoundComponent } from './operator-not-found/operator-not-found.component';
+import { OtpThresholdFormComponent } from './otp-threshold-form/otp-threshold-form.component';
+import { OtpThresholdModalComponent } from './otp-threshold-modal/otp-threshold-modal.component';
+import { OtpThresholdModalLinkComponent } from './otp-threshold-modal-link/otp-threshold-modal-link.component';
+import { NgxTippyModule } from 'ngx-tippy-wrapper';
 
 @NgModule({
   declarations: [
-    OnTimeComponent,
     DelayFrequencyChartComponent,
     TimeSeriesChartComponent,
     OverviewStatsComponent,
@@ -50,6 +57,16 @@ import { LuxonModule } from 'luxon-angular';
     ChartNoDataWrapperComponent,
     ExcessWaitTimeChartComponent,
     ServiceGridComponent,
+    FilterChipsComponent,
+    ControlsComponent,
+    AllOperatorsComponent,
+    ViewOperatorComponent,
+    ViewServiceComponent,
+    AdminAreaMapComponent,
+    OperatorNotFoundComponent,
+    OtpThresholdFormComponent,
+    OtpThresholdModalComponent,
+    OtpThresholdModalLinkComponent,
   ],
   providers: [PercentPipe, DecimalPipe],
   imports: [
@@ -58,11 +75,19 @@ import { LuxonModule } from 'luxon-angular';
     LayoutModule,
     SharedModule,
     FormsModule,
-    AgGridModule.withComponents([NoRowsOverlayComponent, RouterLinkCellRendererComponent]),
+    AgGridModule,
     NgxMapboxGLModule,
     ReactiveFormsModule,
     LuxonModule,
+    NgxTippyModule,
   ],
-  exports: [OnTimeComponent, ServiceGridComponent, StopsGridComponent, OperatorGridComponent],
+  exports: [
+    AllOperatorsComponent,
+    ViewOperatorComponent,
+    ViewServiceComponent,
+    ServiceGridComponent,
+    StopsGridComponent,
+    OperatorGridComponent,
+  ],
 })
 export class OnTimeModule {}

@@ -1,23 +1,25 @@
-import { TestBed, waitForAsync } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ApolloTestingModule } from 'apollo-angular/testing';
 import { AppComponent } from './app.component';
 import { LayoutModule } from './layout/layout.module';
 import { SharedModule } from './shared/shared.module';
+import { createComponentFactory, Spectator } from '@ngneat/spectator';
+import { GoogleTagManagerService } from 'angular-google-tag-manager';
 
 describe('AppComponent', () => {
-  beforeEach(
-    waitForAsync(() => {
-      TestBed.configureTestingModule({
-        imports: [RouterTestingModule, SharedModule, LayoutModule],
-        declarations: [AppComponent],
-      }).compileComponents();
-    })
-  );
+  let spectator: Spectator<AppComponent>;
+
+  const createComponent = createComponentFactory({
+    component: AppComponent,
+    imports: [RouterTestingModule, SharedModule, LayoutModule, ApolloTestingModule],
+    mocks: [GoogleTagManagerService],
+  });
+
+  beforeEach(() => {
+    spectator = createComponent();
+  });
 
   it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-
-    expect(app).toBeTruthy();
+    expect(spectator.component).toBeTruthy();
   });
 });

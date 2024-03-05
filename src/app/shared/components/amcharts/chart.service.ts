@@ -25,9 +25,9 @@ export const chartColors = {
   brown: am4core.color('#b58840'),
   lightGreen: am4core.color('#85994b'),
   turquoise: am4core.color('#28a197'),
-
   // Others
   legendaryGrey: am4core.color('#626A6E'),
+  brightGreen: am4core.color('#74bb68'),
 };
 
 export const loadingSpinner = (container: am4core.Container) => {

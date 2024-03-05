@@ -65,8 +65,8 @@ export class ExcessWaitTimeChartComponent implements OnInit, AfterViewInit {
         if (this.xAxis) {
           const granularity: Granularity = params.filters?.granularity ?? Granularity.Day;
           this.dateRange = Interval.fromDateTimes(
-            DateTime.fromJSDate(params.fromTimestamp),
-            DateTime.fromJSDate(params.toTimestamp).minus({ [granularity]: 1 })
+            DateTime.fromISO(params.fromTimestamp),
+            DateTime.fromISO(params.toTimestamp).minus({ [granularity]: 1 })
           );
           this.xAxis.min = this.dateRange.start.toMillis();
           this.xAxis.max = this.dateRange.end.toMillis();
@@ -75,6 +75,12 @@ export class ExcessWaitTimeChartComponent implements OnInit, AfterViewInit {
               granularity === Granularity.Hour ? 'HH:mm d MMM yyyy' : 'd MMMM yyyy'
             );
           }
+        }
+        if (this.data?.length === 1) {
+          // If we only have one data point we need to push another hour to fix x-axis bug (ABOD-865)
+          this.data.push(<HeadwayTimeSeries>{
+            ts: DateTime.fromISO(data[0].ts).plus({ hour: 1 }).toISO({ suppressMilliseconds: true }),
+          });
         }
       });
   }
@@ -218,8 +224,8 @@ export class ExcessWaitTimeChartComponent implements OnInit, AfterViewInit {
 
   // TODO factor something out here, as its used in various forms in many places
   granularParams(params: HeadwayParams): HeadwayParams {
-    const fromDate = DateTime.fromJSDate(params.fromTimestamp);
-    const toDate = DateTime.fromJSDate(params.toTimestamp);
+    const fromDate = DateTime.fromISO(params.fromTimestamp);
+    const toDate = DateTime.fromISO(params.toTimestamp);
 
     const granularity = Math.abs(toDate.diff(fromDate, 'days').days) <= 5 ? Granularity.Hour : Granularity.Day;
 

@@ -11,6 +11,8 @@ export interface RouterLinkCellRendererParams extends ICellRendererParams {
   bold?: boolean;
   noWrap?: boolean;
   textOverflow?: 'ellipsis' | 'visible' | 'clip';
+  display: 'block' | 'flex';
+  flexDirection: 'row' | 'row-reverse';
 }
 
 @Component({
@@ -35,6 +37,8 @@ export class RouterLinkCellRendererComponent implements AgRendererComponent {
   bold?: boolean;
   noWrap?: boolean;
   textOverflow?: 'ellipsis' | 'visible' | 'clip';
+  display?: 'block' | 'flex';
+  flexDirection?: 'row' | 'row-reverse';
 
   @ViewChild('link') linkElement?: ElementRef<HTMLElement>;
 
@@ -55,6 +59,8 @@ export class RouterLinkCellRendererComponent implements AgRendererComponent {
     this.bold = params.bold;
     this.noWrap = params.noWrap;
     this.textOverflow = params.textOverflow ?? 'ellipsis';
+    this.display = params.display;
+    this.flexDirection = params.flexDirection;
 
     // accessibility - ag-grid seems to swallow keyboard events.
     params.eGridCell.addEventListener('keypress', (event) => {
@@ -69,6 +75,8 @@ export class RouterLinkCellRendererComponent implements AgRendererComponent {
       'router-link-cell--bold': this.bold,
       'router-link-cell--no-wrap': this.noWrap,
       [`router-link-cell--overflow-${this.textOverflow}`]: this.textOverflow,
+      'router-link-cell--flex-row': this.display === 'flex' && this.flexDirection === 'row',
+      'router-link-cell--flex-row-reverse': this.display === 'flex' && this.flexDirection === 'row-reverse',
     };
   }
 }

@@ -37,7 +37,7 @@ export class TextInputComponent implements ControlValueAccessor, AfterViewInit {
   protected _uid = `gds-input-${nextUniqueId++}`;
   protected _id = '';
 
-  @Input() type = 'text';
+  @Input() type: 'text' | 'search' | 'number' | 'date' = 'text';
   @Input() prefix = '';
   @Input() suffix = '';
   @Input() width?: '2' | '3' | '5' | '10' | '20';
@@ -58,12 +58,19 @@ export class TextInputComponent implements ControlValueAccessor, AfterViewInit {
   @Input() noCal = false;
   @Input() placeholder?: string;
   @Input() autofocus?: boolean;
+  @Input() autocomplete?: string;
 
   @Output() focussed = new EventEmitter<Event>();
   @Output() keydowned = new EventEmitter<Event>();
+  @Output() blurred = new EventEmitter<Event>();
+  @Output() calClick = new EventEmitter<Event>();
 
   @ViewChild('textInput') textInput?: ElementRef;
   control = new FormControl();
+
+  get value(): string {
+    return this.control.value;
+  }
 
   onTouch: (_: unknown) => void = () => {
     // Do nothing
@@ -84,6 +91,7 @@ export class TextInputComponent implements ControlValueAccessor, AfterViewInit {
   get containerClasses() {
     return {
       'govuk-form-group text-input': true,
+      'text-input--no-cal': this.noCal || this.type === 'search',
       'govuk-form-group--error': this.error,
       [`govuk-!-margin-bottom-${this.spaceBelow}`]: this.spaceBelow,
       [`govuk-!-margin-top-${this.spaceAbove}`]: this.spaceAbove,
@@ -91,10 +99,10 @@ export class TextInputComponent implements ControlValueAccessor, AfterViewInit {
   }
   get inputClasses() {
     return {
-      'govuk-input': true,
+      'govuk-input text-input__input': true,
       [`govuk-input--width-${this.width}`]: this.width,
       'govuk-input--error': this.error,
-      'text-input--no-cal': this.noCal,
+      'text-input__search-icon': this.type === 'search',
     };
   }
 
@@ -112,5 +120,14 @@ export class TextInputComponent implements ControlValueAccessor, AfterViewInit {
     if (this.noCal) {
       event.preventDefault();
     }
+  }
+
+  focus() {
+    this.textInput?.nativeElement.focus();
+  }
+
+  clearInput() {
+    this.control.patchValue('');
+    this.control.updateValueAndValidity();
   }
 }

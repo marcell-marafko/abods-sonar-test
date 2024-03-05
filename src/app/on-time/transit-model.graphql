@@ -1,5 +1,5 @@
-query transitModelServicePatternStops($nocCode: String!, $lineId: String!) {
-  operator(nocCode: $nocCode) {
+query transitModelServicePatternStops($operatorId: String!, $lineId: String!) {
+  operator(operatorId: $operatorId) {
     transitModel {
       lines(filterBy: { lineIds: [$lineId] }) {
         items {
@@ -13,6 +13,13 @@ query transitModelServicePatternStops($nocCode: String!, $lineId: String!) {
               stopName
               lon
               lat
+            }
+            serviceLinks {
+              fromStop
+              toStop
+              distance
+              routeValidity
+              linkRoute
             }
           }
         }

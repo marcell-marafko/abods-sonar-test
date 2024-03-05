@@ -7,7 +7,7 @@ import { NgxSmartModalComponent, NgxSmartModalService } from 'ngx-smart-modal';
   styleUrls: ['./modal.component.scss'],
 })
 export class ModalComponent {
-  @Input() title?: string;
+  @Input() modalTitle?: string;
   @Input() identifier = 'modal';
 
   @ViewChild(NgxSmartModalComponent) modal!: NgxSmartModalComponent;

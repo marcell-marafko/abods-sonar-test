@@ -12,9 +12,14 @@ import { CorridorsGridComponent } from './grid/corridors-grid.component';
 import { ViewCorridorComponent } from './view/view-corridor.component';
 import { LuxonModule } from 'luxon-angular';
 import { SegmentSelectorComponent } from './segment-selector/segment-selector.component';
-import { JourneyTimeChartComponent } from './journey-time-chart/journey-time-chart.component';
 import { NgxTippyModule } from 'ngx-tippy-wrapper';
-import { ScrollingModule } from '@angular/cdk/scrolling';
+import { BoxPlotChartComponent } from './view/box-plot-chart/box-plot-chart.component';
+import { HistogramChartComponent } from './view/histogram-chart/histogram-chart.component';
+import { NgSelectModule } from '@ng-select/ng-select';
+import { StopSearchListComponent } from './create/stop-search-list/stop-search-list.component';
+import { CorridorStopListComponent } from './create/corridor-stop-list/corridor-stop-list.component';
+import { CorridorMapComponent } from './create/corridor-map/corridor-map.component';
+import { DeleteCorridorModalComponent } from './delete-corridor-modal/delete-corridor-modal.component';
 
 @NgModule({
   declarations: [
@@ -22,8 +27,13 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
     CreateCorridorComponent,
     CorridorsGridComponent,
     ViewCorridorComponent,
-    JourneyTimeChartComponent,
     SegmentSelectorComponent,
+    BoxPlotChartComponent,
+    HistogramChartComponent,
+    StopSearchListComponent,
+    CorridorStopListComponent,
+    CorridorMapComponent,
+    DeleteCorridorModalComponent,
   ],
   imports: [
     CommonModule,
@@ -36,7 +46,7 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
     FormsModule,
     LuxonModule,
     NgxTippyModule,
-    ScrollingModule,
+    NgSelectModule,
   ],
   exports: [CorridorsComponent],
 })

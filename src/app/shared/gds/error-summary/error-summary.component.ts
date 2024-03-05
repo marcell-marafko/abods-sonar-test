@@ -1,4 +1,12 @@
 import { Component, Input } from '@angular/core';
+import { DateTime } from 'luxon';
+
+export const genericErrorMessage = (message?: string) => {
+  return asFormErrors([
+    message ? message : 'An error occurred. Please try again later.',
+    `Problem occurred on ${DateTime.now().toFormat('dd LLL yyyy')} at ${DateTime.now().toFormat('HH:mm:ssZZ')}`,
+  ]);
+};
 
 export const asFormErrors: (err: unknown) => FormErrors[] = (err) =>
   !err ? [] : Array.isArray(err) ? err.map((e) => ({ error: String(e) })) : [{ error: String(err) }];

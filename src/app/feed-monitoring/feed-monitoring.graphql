@@ -7,6 +7,7 @@ fragment VehicleStat on VehicleStatsType {
 fragment BasicOperator on OperatorType {
   name
   nocCode
+  operatorId
   feedMonitoring {
     feedStatus
     availability
@@ -21,6 +22,7 @@ fragment BasicOperator on OperatorType {
 fragment OperatorLiveStatus on OperatorType {
   name
   nocCode
+  operatorId
   feedMonitoring {
     feedStatus
     availability
@@ -43,6 +45,7 @@ fragment OperatorLiveStatus on OperatorType {
 fragment OperatorFeedHistory on OperatorType {
   name
   nocCode
+  operatorId
   feedMonitoring {
     historicalStats(date: $date) {
       updateFrequency
@@ -62,10 +65,11 @@ query feedMonitoringList {
   }
 }
 
-query operatorSparklineStats($nocCodes: [String!]) {
-  operators(filterBy: { nocCodes: $nocCodes }) {
+query operatorSparklineStats($operatorIds: [String!]) {
+  operators(filterBy: { operatorIds: $operatorIds }) {
     items {
       nocCode
+      operatorId
       feedMonitoring {
         liveStats {
           last24Hours {
@@ -77,14 +81,14 @@ query operatorSparklineStats($nocCodes: [String!]) {
   }
 }
 
-query operatorLiveStatus($nocCode: String!) {
-  operator(nocCode: $nocCode) {
+query operatorLiveStatus($operatorId: String!) {
+  operator(operatorId: $operatorId) {
     ...OperatorLiveStatus
   }
 }
 
-query operatorHistoricStats($nocCode: String!, $date: Date!, $start: DateTime!, $end: DateTime!) {
-  operator(nocCode: $nocCode) {
+query operatorHistoricStats($operatorId: String!, $date: Date!, $start: DateTime!, $end: DateTime!) {
+  operator(operatorId: $operatorId) {
     ...OperatorFeedHistory
   }
 }

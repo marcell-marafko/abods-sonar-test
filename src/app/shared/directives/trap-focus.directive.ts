@@ -1,38 +1,56 @@
-import { AfterViewInit, Directive, ElementRef } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Directive, ElementRef, HostBinding, Inject, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 
 @Directive({
   selector: '[appTrapFocus]',
 })
-export class TrapFocusDirective implements AfterViewInit {
-  constructor(private el: ElementRef) {}
+export class TrapFocusDirective implements OnChanges, OnDestroy {
+  @Input() appTrapFocus!: boolean;
 
-  ngAfterViewInit() {
-    this.trapFocus(this.el.nativeElement);
+  @HostBinding('tabIndex') tabIndex = '';
+
+  constructor(private el: ElementRef, @Inject(DOCUMENT) private document: Document) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.appTrapFocus.currentValue) {
+      this.start();
+    } else if (this.el.nativeElement) {
+      this.stop();
+    }
   }
 
-  trapFocus(element: HTMLElement) {
-    const focusableEls1 = element.querySelectorAll(
-      'a[href], button, textarea, input[type="text"],' + 'input[type="radio"], input[type="checkbox"], select'
-    );
-    const focusableEls = Array.from(focusableEls1).filter((el: any) => !el.disabled);
-    const firstFocusableEl: any = focusableEls[0];
-    const lastFocusableEl: any = focusableEls[focusableEls.length - 1];
+  ngOnDestroy(): void {
+    this.stop();
+  }
 
-    element.addEventListener('keydown', function (e) {
-      const isTabPressed = e.key === 'Tab'; // isTabPressed
-      if (!isTabPressed) return;
+  start() {
+    window.addEventListener('keydown', this.trapFocus);
+    this.tabIndex = '-1';
+    this.el.nativeElement.focus();
+  }
 
-      if (e.shiftKey) {
-        /* shift + tab */ if (document.activeElement === firstFocusableEl) {
-          lastFocusableEl.focus();
-          e.preventDefault();
+  stop() {
+    window.removeEventListener('keydown', this.trapFocus);
+    this.tabIndex = '';
+  }
+
+  private trapFocus = (event: KeyboardEvent) => {
+    if (event.key === 'Tab') {
+      try {
+        const el = this.el.nativeElement;
+
+        if (!el.contains(this.document.activeElement)) {
+          event.preventDefault();
+          event.stopPropagation();
+          el.focus();
         }
-      } /* tab */ else {
-        if (document.activeElement === lastFocusableEl) {
-          firstFocusableEl.focus();
-          e.preventDefault();
-        }
+
+        return true;
+      } catch (e) {
+        return false;
       }
-    });
-  }
+    }
+
+    return false;
+  };
 }

@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
-import { WindowDatetimes, Period } from 'src/app/shared/services/date-range.service';
+import { Period } from 'src/app/shared/components/date-range/date-range.types';
+import { WindowDatetimes } from 'src/app/shared/services/date-range.service';
 import { RankingOrder, ServicePunctualityType } from 'src/generated/graphql';
 
 class ServiceViewModel {
@@ -23,9 +24,9 @@ class ServiceViewModel {
     trend,
   }: ServicePunctualityType) {
     const total = (onTime ?? 0) + (early ?? 0) + (late ?? 0);
-    this.nocCode = nocCode;
+    this.nocCode = nocCode as string;
     this.name = `${serviceNumber}: ${serviceName}`;
-    this.route = ['/on-time/', nocCode, lineId];
+    this.route = ['/on-time/', nocCode as string, lineId];
     this.onTime = total > 0 ? (onTime ?? 0) / total : 0;
     this.onTimePct = `${(this.onTime * 100).toFixed(2)}%`;
 
@@ -55,7 +56,7 @@ export class PerformanceRankingComponent implements OnInit, OnChanges {
   @Input() loaded = false;
 
   @Input() nocCode: string | null = null;
-  @Input() operators?: { nocCode: string; name?: string | null }[] | null;
+  @Input() operators?: { nocCode?: string | null; name?: string | null }[] | null;
 
   @Input() fromTo: WindowDatetimes | null = null;
   @Input() period?: Period;

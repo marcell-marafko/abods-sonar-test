@@ -59,6 +59,10 @@ export class OrganisationService {
 
   userListDirty = false;
 
+  fetchUser(username: string): Observable<UserFragment | undefined> {
+    return this.listUsers$().pipe(map((users) => users.find((user) => user.username === username)));
+  }
+
   listUsers$(): Observable<UserFragment[]> {
     return this.listUsers.fetch({}, { fetchPolicy: this.userListDirty ? 'no-cache' : 'cache-first' }).pipe(
       tap(() => (this.userListDirty = false)),

@@ -48,7 +48,7 @@ export class SelectableTextCellRendererComponent implements AgRendererComponent 
     this.textOverflow = params.textOverflow ?? 'ellipsis';
     this.withTooltip = !!params.tooltipValueGetter;
     if (params.tooltipValueGetter) {
-      this.tooltipText = params.tooltipValueGetter(params);
+      this.tooltipText = params.tooltipValueGetter(params as ValueGetterParams);
     }
   }
 

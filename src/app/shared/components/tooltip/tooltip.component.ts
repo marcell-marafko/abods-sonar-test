@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, Input, ViewEncapsulation, TemplateRef } from '@angular/core';
 import { NgxTippyProps, NgxTippyService } from 'ngx-tippy-wrapper';
 import type { Placement } from 'tippy.js';
 
@@ -9,7 +9,7 @@ import type { Placement } from 'tippy.js';
   encapsulation: ViewEncapsulation.None,
 })
 export class TooltipComponent implements OnInit {
-  @Input() message? = '';
+  @Input() message?: string | TemplateRef<any> | null = '';
   @Input() identifier?: string;
   @Input() position?: Placement;
   @Input() underline? = false;
@@ -29,7 +29,7 @@ export class TooltipComponent implements OnInit {
   }
 
   setContentForTooltip() {
-    this.tippyProps.content = this.message;
+    this.tippyProps.content = this.message as string;
   }
   setPositionForTooltip() {
     this.tippyProps.placement = this.position || 'top';

@@ -19,17 +19,17 @@ query headwayOverview($params: HeadwayInputType!) {
   }
 }
 
-query headwayFrequentServices($noc: String!, $fromTimestamp: DateTime!, $toTimestamp: DateTime!) {
+query headwayFrequentServices($operatorId: String!, $fromTimestamp: DateTime!, $toTimestamp: DateTime!) {
   headwayMetrics {
-    frequentServices(noc: $noc, fromTimestamp: $fromTimestamp, toTimestamp: $toTimestamp) {
+    frequentServices(operatorId: $operatorId, fromTimestamp: $fromTimestamp, toTimestamp: $toTimestamp) {
       serviceId
     }
   }
 }
 
-query headwayFrequentServiceInfo($noc: String!, $lineId: String!, $fromTimestamp: DateTime!, $toTimestamp: DateTime!) {
+query headwayFrequentServiceInfo($inputs: FrequentServiceInfoInputType) {
   headwayMetrics {
-    frequentServiceInfo(noc: $noc, lineId: $lineId, fromTimestamp: $fromTimestamp, toTimestamp: $toTimestamp) {
+    frequentServiceInfo(inputs: $inputs) {
       numHours
       totalHours
     }

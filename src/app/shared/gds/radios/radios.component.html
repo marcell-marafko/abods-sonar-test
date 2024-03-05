@@ -5,7 +5,11 @@
     </span>
     <legend
       class="govuk-fieldset__legend"
-      [ngClass]="size === 'small' ? 'govuk-fieldset__legend--m' : 'govuk-fieldset__legend--l'"
+      [ngClass]="{
+        'govuk-fieldset__legend--s': legendSize === 'small',
+        'govuk-fieldset__legend--m': size === 'small' || legendSize === 'medium',
+        'govuk-fieldset__legend--l': size !== 'small' || legendSize === 'large'
+      }"
       *ngIf="legend"
     >
       <h1 class="govuk-fieldset__heading">

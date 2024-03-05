@@ -12,6 +12,7 @@ import {
   onTimeInputParamsTimingPointFalse,
   onTimeInputParamsTimingPointTrue,
 } from '../on-time.test-constants';
+import { PerformanceCategories } from 'src/app/dashboard/dashboard.types';
 
 describe('DelayFrequencyChartComponent', () => {
   let spectator: Spectator<DelayFrequencyChartComponent>;
@@ -97,5 +98,11 @@ describe('DelayFrequencyChartComponent', () => {
     spectator.detectChanges();
 
     expect(spy).toHaveBeenCalledWith(jasmine.objectContaining(onTimeInputParamsTimingPointTrue));
+  });
+
+  it('should return correct category based on heuristic function', () => {
+    expect(spectator.component.heuristic(-2)).toEqual(PerformanceCategories.Early);
+    expect(spectator.component.heuristic(0)).toEqual(PerformanceCategories.OnTime);
+    expect(spectator.component.heuristic(6)).toEqual(PerformanceCategories.Late);
   });
 });

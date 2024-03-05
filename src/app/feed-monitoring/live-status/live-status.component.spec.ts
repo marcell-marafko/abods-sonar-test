@@ -9,12 +9,14 @@ import { FeedMonitoringService } from '../feed-monitoring.service';
 import { LiveStatusComponent } from './live-status.component';
 import * as Faker from 'faker';
 
-import { SpectatorRouting, createRoutingFactory, byTextContent, byText } from '@ngneat/spectator';
+import { byText, byTextContent, createRoutingFactory, SpectatorRouting } from '@ngneat/spectator';
 import { OperatorLiveStatusFragment } from 'src/generated/graphql';
 import { NgSelectComponent, NgSelectModule } from '@ng-select/ng-select';
 import { FormsModule } from '@angular/forms';
 import { AlertListComponent } from '../alert-list/alert-list.component';
 import { MockLiveVehicleStatsComponent } from './live-vehicle-stats/mock-live-vehicle-stats.component';
+import { Interval, Settings } from 'luxon';
+import { LuxonModule } from 'luxon-angular';
 
 describe('LiveStatusComponent', () => {
   let spectator: SpectatorRouting<LiveStatusComponent>;
@@ -23,12 +25,15 @@ describe('LiveStatusComponent', () => {
   const createComponent = createRoutingFactory({
     component: LiveStatusComponent,
     declarations: [LiveStatusComponent, AlertListComponent, MockLiveVehicleStatsComponent],
-    imports: [FormsModule, LayoutModule, SharedModule, ApolloTestingModule, NgSelectModule],
+    imports: [FormsModule, LayoutModule, SharedModule, ApolloTestingModule, NgSelectModule, LuxonModule],
     providers: [FeedMonitoringService],
     detectChanges: false,
     stubsEnabled: false,
   });
   beforeEach(() => {
+    Settings.defaultZone = 'utc';
+    Settings.now = () => 1659312000000; // 2022-08-01
+
     spectator = createComponent();
     service = spectator.inject(FeedMonitoringService);
   });
@@ -40,13 +45,14 @@ describe('LiveStatusComponent', () => {
   it('should set operator from params', () => {
     const operator = fakeOperatorLiveStatus(true);
 
+    spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
     spyOn(service, 'fetchOperator').and.returnValue(of(operator));
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
 
     spectator.detectChanges();
 
-    expect(service.fetchOperator).toHaveBeenCalledWith(operator.nocCode);
+    expect(service.fetchOperator).toHaveBeenCalledWith(operator.operatorId as string);
 
     expect(spectator.component.operator).toEqual(operator);
   });
@@ -54,15 +60,15 @@ describe('LiveStatusComponent', () => {
   it(`should show operator name`, () => {
     const operator = fakeOperatorLiveStatus(true);
 
-    spyOn(service, 'fetchOperator').and.returnValue(of(operator));
     spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
+    spyOn(service, 'fetchOperator').and.returnValue(of(operator));
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
 
     spectator.detectChanges();
 
     const operatorName = spectator.query(
-      byTextContent(`${operator.name} (${operator.nocCode})`, { selector: '.govuk-caption-l' })
+      byTextContent(`${operator.name} (${operator.nocCode as string})`, { selector: '.govuk-caption-l' })
     );
 
     expect(operatorName).toBeTruthy();
@@ -74,7 +80,7 @@ describe('LiveStatusComponent', () => {
     spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
     spyOn(service, 'fetchOperator').and.returnValue(of(operator));
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
 
     spectator.detectChanges();
 
@@ -93,7 +99,7 @@ describe('LiveStatusComponent', () => {
 
       await spectator.fixture.whenStable();
 
-      spectator.setRouteParam('nocCode', theoperator.nocCode);
+      spectator.setRouteParam('nocCode', theoperator.nocCode as string);
 
       spectator.detectChanges();
       await spectator.fixture.whenStable();
@@ -126,7 +132,7 @@ describe('LiveStatusComponent', () => {
 
     await spectator.fixture.whenStable();
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
 
     spectator.detectChanges();
     await spectator.fixture.whenStable();
@@ -159,9 +165,10 @@ describe('LiveStatusComponent', () => {
     it(`should show operator ${status} status`, () => {
       const operator = fakeOperatorLiveStatus(active);
 
+      spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
       spyOn(service, 'fetchOperator').and.returnValue(of(operator));
 
-      spectator.setRouteParam('nocCode', operator.nocCode);
+      spectator.setRouteParam('nocCode', operator.nocCode as string);
 
       spectator.detectChanges();
 
@@ -174,9 +181,11 @@ describe('LiveStatusComponent', () => {
   it(`should show operator current vehicles`, () => {
     const operator = fakeOperatorLiveStatus(true);
     operator.feedMonitoring.liveStats.currentVehicles = 1732;
+
+    spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
     spyOn(service, 'fetchOperator').and.returnValue(of(operator));
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
 
     spectator.detectChanges();
 
@@ -192,9 +201,11 @@ describe('LiveStatusComponent', () => {
   it(`should show operator expected vehicles`, () => {
     const operator = fakeOperatorLiveStatus(true);
     operator.feedMonitoring.liveStats.expectedVehicles = 437;
+
+    spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
     spyOn(service, 'fetchOperator').and.returnValue(of(operator));
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
 
     spectator.detectChanges();
 
@@ -210,9 +221,10 @@ describe('LiveStatusComponent', () => {
   it(`should show operator update frequency`, () => {
     const operator = fakeOperatorLiveStatus(true);
     operator.feedMonitoring.liveStats.updateFrequency = 56;
+    spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
     spyOn(service, 'fetchOperator').and.returnValue(of(operator));
 
-    spectator.setRouteParam('nocCode', operator.nocCode);
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
 
     spectator.detectChanges();
 
@@ -226,6 +238,7 @@ describe('LiveStatusComponent', () => {
   });
 
   it(`should show a not found message if operator fails to load, but with no errors`, () => {
+    spyOnProperty(service, 'listOperators').and.returnValue(of([]));
     spyOn(service, 'fetchOperator').and.returnValue(of(null));
 
     spectator.setRouteParam('nocCode', 'NOCNOC');
@@ -236,6 +249,7 @@ describe('LiveStatusComponent', () => {
   });
 
   it('should show an error message if operator fails to load, with errors', () => {
+    spyOnProperty(service, 'listOperators').and.returnValue(of([]));
     spyOn(service, 'fetchOperator').and.throwError('There was an error');
 
     spectator.setRouteParam('nocCode', 'NOCNOC');
@@ -243,5 +257,42 @@ describe('LiveStatusComponent', () => {
     spectator.detectChanges();
 
     expect(spectator.query(byText(/There was an error loading the operator data/))).toBeTruthy();
+  });
+
+  it('should specify intervals for last 24 hours and last 20 minutes charts', () => {
+    const operator = fakeOperatorLiveStatus(true);
+
+    spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
+    spyOn(service, 'fetchOperator').and.returnValue(of(operator));
+
+    spectator.setRouteParam('nocCode', 'NOCNOC');
+    spectator.detectChanges();
+
+    expect(spectator.component.intervalLast24Hours).toEqual(Interval.fromISO('P1D/2022-08-01T00:00:00'));
+    expect(spectator.component.intervalLast20Minutes).toEqual(Interval.fromISO('PT20M/2022-08-01T00:00:00'));
+  });
+
+  it(`should show message with link to BODS when expected vehicles equals 0`, () => {
+    const operator = fakeOperatorLiveStatus(true);
+    operator.feedMonitoring.liveStats.expectedVehicles = 0;
+    spyOnProperty(service, 'listOperators').and.returnValue(of([operator]));
+    spyOn(service, 'fetchOperator').and.returnValue(of(operator));
+
+    spectator.setRouteParam('nocCode', operator.nocCode as string);
+
+    spectator.detectChanges();
+
+    expect(
+      spectator.query(
+        byTextContent(
+          'If the number of expected vehicles is zero and you were expecting vehicles, please check your BODS timetables are up to date here.',
+          { selector: '.govuk-inset-text' }
+        )
+      )
+    ).toBeVisible();
+
+    expect(spectator.query('.govuk-inset-text .govuk-link')?.getAttribute('href')).toContain(
+      `https://data.bus-data.dft.gov.uk/timetable/?q=${operator.nocCode}`
+    );
   });
 });

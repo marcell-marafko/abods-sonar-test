@@ -1,10 +1,15 @@
 @import 'src/assets/styles/settings/settings';
 @import 'src/assets/styles/helpers/helpers';
 
-:host {
-}
-
 .dashboard {
+  &__controls {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    app-segmented-toggle {
+      margin-bottom: govuk-spacing(3);
+    }
+  }
   &__layout {
     display: flex;
     flex-direction: column;

@@ -4,6 +4,7 @@ import { AuthGuardService } from '../authentication/auth-guard.service';
 import { FeedMonitoringComponent } from './feed-monitoring.component';
 import { FeedHistoryComponent } from './feed-history/feed-history.component';
 import { LiveStatusComponent } from './live-status/live-status.component';
+import { HelpdeskResolver } from '../shared/resolvers/helpdesk.resolver';
 
 export const FeedMonitoringRoutes: Routes = [
   {
@@ -25,6 +26,11 @@ export const FeedMonitoringRoutes: Routes = [
         component: FeedHistoryComponent,
       },
     ],
+    data: {
+      helpdeskFolder: 'feedMonitoring',
+      helpdeskTitle: 'Feed monitoring',
+    },
+    resolve: { helpdesk: HelpdeskResolver },
   },
 ];
 
