@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { OnTimeService, PerformanceParams, PunctualityOverview, ServicePerformance } from './on-time.service';
 import { Headway, HeadwayService } from './headway.service';
 import { catchError, map } from 'rxjs/operators';
-import { forkJoin, iif, Observable, of } from 'rxjs';
+import { combineLatest, forkJoin, iif, Observable, of } from 'rxjs';
 import { map as _map } from 'lodash-es';
 
 export interface FrequentServicePerformance extends ServicePerformance {
@@ -26,7 +26,7 @@ export class PerformanceService {
   }
 
   fetchOverviewStats(params: PerformanceParams): Observable<{ onTime?: PunctualityOverview; headway?: Headway }> {
-    return forkJoin({
+    return combineLatest({
       onTime: this.onTimeService.fetchOnTimeStats(params).pipe(catchError(() => of(undefined))),
       headway: iif(
         () => (params.filters?.lineIds?.length ?? 0) > 0,

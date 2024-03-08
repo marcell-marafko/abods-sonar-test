@@ -1,5 +1,5 @@
 <div class="on-time-grid">
-  <div *ngIf="!loading && !errored">
+  <div class="on-time-grid--loaded" [ngClass]="{ 'on-time-grid--hidden': loading || errored }">
     <div class="on-time-grid__controls">
       <div class="on-time-grid__controls--filter">
         <gds-text-input
@@ -13,7 +13,9 @@
       </div>
       <div class="on-time-grid__options">
         <div>
-          <button class="button-link govuk-link" (click)="openDisplayOptions()">Display options</button>
+          <button class="button-link govuk-link on-time-grid__display-options-btn" (click)="openDisplayOptions()">
+            Display options
+          </button>
         </div>
         <gds-radios size="small" layout="inline">
           <gds-radio-item
@@ -44,8 +46,6 @@
       [gridOptions]="gridOptions"
       [defaultColDef]="defaultColDef"
       domLayout="autoHeight"
-      (gridReady)="gridReady$.next($event)"
-      (displayedColumnsChanged)="displayedColumnsChanged$.next($event)"
       (columnResized)="headerHeightSetter()"
       [pagination]="paginate"
       [paginationPageSize]="10"
@@ -78,19 +78,21 @@
     </div>
   </div>
 </div>
-
-<app-modal title="Display options" identifier="displayOptionsModal">
+<app-modal modalTitle="Display options" identifier="displayOptionsModal">
   <form [formGroup]="displayOptionsForm" (submit)="saveDisplayOptions()">
-    <gds-checkboxes size="small" layout="2-column" legendSize="s" spaceBelow="8">
-      <gds-checkboxes-item
-        *ngFor="let column of columnDescriptions"
-        [formControlName]="column.colId"
-        [value]="column.colId"
-        [label]="column.title"
-      ></gds-checkboxes-item>
+    <gds-checkboxes size="small" legendSize="s">
+      <div class="on-time-grid__checkboxes">
+        <gds-checkboxes-item
+          *ngFor="let column of columnDescriptions; let i = index"
+          [formControlName]="column.colId"
+          [value]="column.colId"
+          [label]="column.title"
+          [ngClass]="{ 'on-time-grid__checkboxes-col-2': i >= columnDescriptions.length / 2 }"
+        ></gds-checkboxes-item>
+      </div>
     </gds-checkboxes>
-    <button class="button-link govuk-link" (click)="selectAllColumns()">Show all</button>
-    <div class="flex-row justify-content-between govuk-!-margin-top-2">
+    <button class="button-link govuk-link on-time-grid__show-btn" (click)="selectAllColumns()">Show all</button>
+    <div class="flex-row justify-content-between govuk-!-margin-top-6">
       <gds-button text="Cancel" spaceBelow="0" appearance="secondary" (click)="closeDisplayOptions()"></gds-button>
       <gds-button type="submit" text="Update" spaceBelow="0"></gds-button>
     </div>

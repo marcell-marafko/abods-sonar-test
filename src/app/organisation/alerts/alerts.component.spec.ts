@@ -161,7 +161,7 @@ describe('AlertsComponent', () => {
     const alert = createAlert(AlertTypeEnum.VehicleCountDisparity, '543', 'Mr', 'Zulu');
     spyOn(service, 'listUserAlerts$').and.returnValue(of([alert]));
 
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(
       of({
         id: '546',
         username: 'Starfleet',
@@ -198,7 +198,7 @@ describe('AlertsComponent', () => {
     const alert = createAlert(AlertTypeEnum.VehicleCountDisparity, '543', 'Mr', 'Zulu');
     spyOn(service, 'listUserAlerts$').and.returnValue(of([alert]));
 
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(
       of({
         id: '543',
         firstName: 'Mr',
@@ -237,7 +237,7 @@ describe('AlertsComponent', () => {
     const alert = createAlert(AlertTypeEnum.VehicleCountDisparity, '545', 'Mr', 'Spock');
     spyOn(service, 'listUserAlerts$').and.returnValue(of([alert]));
 
-    spyOnProperty(authService, 'authenticatedUser').and.returnValue(
+    spyOnProperty(authService, 'authenticatedUser$').and.returnValue(
       of({
         id: '543',
         firstName: 'Mr',

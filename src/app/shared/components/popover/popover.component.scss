@@ -1,3 +1,4 @@
+@use "sass:math";
 @import 'src/assets/styles/settings/settings';
 @import 'src/assets/styles/helpers/helpers';
 
@@ -7,7 +8,7 @@ $popover-border-width: 1px;
 $popover-background: white;
 
 $popover-arrow-offset: $popover-arrow-size + $popover-border-width;
-$popover-border-offset: ($popover-arrow-size - $popover-border-width * 2)/2;
+$popover-border-offset: math.div(($popover-arrow-size - $popover-border-width * 2), 2);
 $popover-border-position-offset: $popover-border-width;
 
 .popover {

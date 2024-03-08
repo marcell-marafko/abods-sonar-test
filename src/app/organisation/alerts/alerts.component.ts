@@ -36,7 +36,7 @@ export class AlertsComponent implements OnInit, OnDestroy, AfterViewInit {
         this.alerts = alerts.map((a) => new AlertViewModel(a));
         this.alertsLoaded = true;
       }),
-      this.authService.authenticatedUser.subscribe((user) => {
+      this.authService.authenticatedUser$.subscribe((user) => {
         this.authenticatedUser = user;
       })
     );

@@ -1,34 +1,27 @@
-import { Component, OnInit } from '@angular/core';
-import { ColDef, FilterChangedEvent, ICellRendererParams } from 'ag-grid-community';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ColDef, ComponentStateChangedEvent, ICellRendererParams } from 'ag-grid-community';
 import { RouterLinkCellRendererComponent } from '../../shared/components/ag-grid/router-link-cell/router-link-cell.component';
-import {
-  NoRowsOverlayComponent,
-  NoRowsOverlayParams,
-} from '../../shared/components/ag-grid/no-rows-overlay/no-rows-overlay.component';
 import { Corridor, CorridorsService, CorridorSummary } from '../corridors.service';
-import { finalize } from 'rxjs/operators';
-import { ButtonCellRendererComponent } from '../../shared/components/ag-grid/button-cell/button-cell.component';
-import { NgxSmartModalService } from 'ngx-smart-modal';
-import { asFormErrors, FormErrors } from '../../shared/gds/error-summary/error-summary.component';
-
-const INITIAL_NO_ROWS_MESSAGE = 'No corridor data found';
+import { distinctUntilChanged, finalize, map, takeUntil } from 'rxjs/operators';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-corridors-grid',
   templateUrl: 'corridors-grid.component.html',
   styleUrls: ['./corridors-grid.component.scss'],
 })
-export class CorridorsGridComponent implements OnInit {
+export class CorridorsGridComponent implements OnInit, OnDestroy {
   columnDefs: ColDef[] = [
     {
       field: 'name',
       headerName: 'Name',
-      cellRendererFramework: RouterLinkCellRendererComponent,
+      cellRenderer: RouterLinkCellRendererComponent,
       cellRendererParams: { routerLinkGetter: (params: ICellRendererParams) => [params.data.id] },
       comparator: (a, b) => a?.trim().localeCompare(b?.trim(), undefined, { numeric: true }),
       minWidth: 200,
       sort: 'asc',
-      flex: 1,
+      flex: 4,
       getQuickFilterText: ({ value }) => value,
       suppressNavigable: false,
       autoHeight: true,
@@ -37,76 +30,77 @@ export class CorridorsGridComponent implements OnInit {
     {
       field: 'numStops',
       headerName: 'Stops',
+      flex: 1,
     },
     {
-      cellRendererFramework: ButtonCellRendererComponent,
+      cellRenderer: RouterLinkCellRendererComponent,
       cellRendererParams: {
-        click: (params: ICellRendererParams) => () => this.confirmDeleteCorridor(params.data),
-        label: 'Delete',
+        value: 'Edit',
+        display: 'flex',
+        flexDirection: 'row-reverse',
+        routerLinkGetter: (params: ICellRendererParams) => ['edit/' + params.data.id],
       },
-      width: 100,
       suppressNavigable: false,
+      sortable: false,
+      flex: 1,
     },
   ];
   defaultColDef: ColDef = {
     sortable: true,
     unSortIcon: true,
     resizable: false,
-    minWidth: 100,
     suppressNavigable: true,
     suppressMovable: true,
     getQuickFilterText: () => '',
-  };
-  overlayComponent = NoRowsOverlayComponent;
-  overlayParams: NoRowsOverlayParams = {
-    message: INITIAL_NO_ROWS_MESSAGE,
   };
 
   data: CorridorSummary[] = [];
   gridFilter = '';
   loading = true;
   errored = false;
+  noMatches = false;
   corridorForDeletion?: Corridor;
-  deleteError: FormErrors[] = [];
 
-  constructor(private corridorsService: CorridorsService, private modalService: NgxSmartModalService) {}
+  constructor(private corridorsService: CorridorsService, private router: Router, private route: ActivatedRoute) {}
 
-  ngOnInit() {
+  private destroy$ = new Subject<void>();
+
+  ngOnInit(): void {
     this.corridorsService
       .fetchCorridors()
       .pipe(finalize(() => (this.loading = false)))
-      .subscribe(
-        (data) => (this.data = data),
-        () => (this.errored = true)
-      );
+      .subscribe({
+        next: (data) => (this.data = data),
+        error: () => (this.errored = true),
+      });
+
+    this.route.queryParamMap
+      .pipe(
+        map((paramMap) => paramMap.get('search')),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((param) => {
+        this.gridFilter = decodeURIComponent(param || '');
+      });
   }
 
-  filterChanged({ api }: FilterChangedEvent) {
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onGridChanged({ api }: ComponentStateChangedEvent) {
     const rowCount = api.getDisplayedRowCount() ?? 0;
-    if (this.data.length > 0 && rowCount === 0) {
-      this.overlayParams.message = 'No corridors matched the search query';
-      api.showNoRowsOverlay();
-    } else if (rowCount > 0) {
-      api.hideOverlay();
-      this.overlayParams.message = INITIAL_NO_ROWS_MESSAGE;
-    }
+    this.noMatches = this.data.length > 0 && rowCount === 0;
   }
 
-  private confirmDeleteCorridor(corridor: Corridor) {
-    this.corridorForDeletion = corridor;
-    this.modalService.open('deleteCorridor');
-  }
-
-  deleteCorridor() {
-    if (!this.corridorForDeletion) {
-      return;
-    }
-    this.corridorsService
-      .deleteCorridor(this.corridorForDeletion?.id)
-      .pipe(finalize(() => this.modalService.close('deleteCorridor')))
-      .subscribe(
-        () => (this.data = this.data.filter((corridor) => corridor.id !== this.corridorForDeletion?.id)),
-        (err) => (this.deleteError = asFormErrors(err))
-      );
+  onFilterChanged() {
+    this.router.navigate([], {
+      queryParams: {
+        search: encodeURIComponent(this.gridFilter),
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 }

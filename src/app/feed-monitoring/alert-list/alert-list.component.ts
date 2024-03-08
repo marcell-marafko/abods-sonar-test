@@ -1,8 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
 import { DateTime } from 'luxon';
-import { combineLatest, of, Subject, Subscription } from 'rxjs';
-import { filter, switchMap, tap } from 'rxjs/operators';
+import { combineLatest, of, Subject } from 'rxjs';
+import { filter, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { EventType } from 'src/generated/graphql';
 import { FeedMonitoringService } from '../feed-monitoring.service';
 import { AlertMode, AlertListViewModel } from './alert-list-view-model';
@@ -16,15 +15,18 @@ export class AlertListComponent implements OnInit, OnDestroy, OnChanges {
   @Input() mode!: AlertMode;
   @Input() date?: DateTime;
   @Input() selectedId: string | null = null;
+  @Input() operatorId = '';
   @Output() alerts = new EventEmitter<AlertListViewModel[]>();
 
-  constructor(private route: ActivatedRoute, private fmService: FeedMonitoringService) {}
+  constructor(private fmService: FeedMonitoringService) {}
 
-  subs: Subscription[] = [];
+  private destroy$ = new Subject<void>();
 
   events: AlertListViewModel[] = [];
 
-  dateSubject = new Subject<DateTime>();
+  private dateSubject = new Subject<DateTime | undefined>();
+
+  private operatorIdSubject = new Subject<string>();
 
   loaded = false;
 
@@ -54,38 +56,41 @@ export class AlertListComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnInit(): void {
-    this.subs.push(
-      combineLatest([this.route.paramMap, this.dateSubject])
-        .pipe(
-          tap(() => (this.loaded = false)),
-          switchMap(([pm, _]) => {
-            const nocCode = pm.get('nocCode');
-            if (nocCode && this.start && this.end) {
-              return this.fmService.fetchAlerts(nocCode, this.start, this.end);
-            }
-            return of([]);
-          }),
-          filter((events) => events !== null)
-        )
-        .subscribe((events) => {
-          this.events = (events as EventType[])
-            .map((event) => new AlertListViewModel(event, this.mode))
-            .filter((x) => x.type)
-            .sort((a, b) => a.compare(b));
-          this.alerts.emit(this.events);
-          this.loaded = true;
-        })
-    );
+    combineLatest([this.dateSubject, this.operatorIdSubject])
+      .pipe(
+        tap(() => (this.loaded = false)),
+        switchMap(() => {
+          if (this.start && this.end) {
+            return this.fmService.fetchAlerts(this.operatorId, this.start, this.end);
+          }
+          return of([]);
+        }),
+        filter((events) => events !== null),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((events) => {
+        this.events = (events as EventType[])
+          .map((event) => new AlertListViewModel(event, this.mode))
+          .filter((x) => x.type)
+          .sort((a, b) => a.compare(b));
+        this.alerts.emit(this.events);
+        this.loaded = true;
+      });
     this.dateSubject.next(this.date);
+    this.operatorIdSubject.next(this.operatorId);
   }
 
   ngOnDestroy(): void {
-    this.subs.forEach((sub) => sub?.unsubscribe());
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.date) {
       this.dateSubject.next(changes.date.currentValue);
+    }
+    if (changes.operatorId) {
+      this.operatorIdSubject.next(changes.operatorId.currentValue);
     }
   }
 }

@@ -33,8 +33,10 @@
       ></svg-icon>
     </button>
   </div>
-  <div class="modal__content">
-    <h2 class="govuk-heading-l modal__heading" *ngIf="title">{{ title }}</h2>
-    <ng-content></ng-content>
+  <div class="modal__content-scroll">
+    <div class="modal__content">
+      <h2 class="govuk-heading-l modal__heading" *ngIf="modalTitle">{{ modalTitle }}</h2>
+      <ng-content></ng-content>
+    </div>
   </div>
 </ngx-smart-modal>

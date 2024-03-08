@@ -1,6 +1,6 @@
 <button
   #navButton
-  [ngxTippy]
+  ngxTippy
   [tippyName]="date?.toFormat('d MMM')"
   [tippyProps]="tippyProps"
   (click)="selectDate.emit(date)"

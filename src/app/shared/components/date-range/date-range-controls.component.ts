@@ -20,7 +20,7 @@ export class DateRangeControlsComponent implements OnInit {
       return;
     }
     this.start = fromTo.from;
-    this.end = fromTo.to?.minus({ days: 1 });
+    this.end = fromTo.to.minus({ days: 1 });
   }
   @Output() fromToChange = new EventEmitter<FromTo>();
 
@@ -47,8 +47,14 @@ export class DateRangeControlsComponent implements OnInit {
   today = DateTime.local().startOf('day');
   validInterval = Interval.before(this.today, Duration.fromObject({ years: 5 }));
   handlingBlur = false;
+  startFocused = false;
+  endFocused = false;
+  readonly placeholder = 'dd/mm/yyyy';
 
   get invalidDates(): boolean {
+    if (!this.end?.isValid) {
+      return !(this.start?.isValid && this.validInterval.contains(this.start));
+    }
     return !(
       this.start?.isValid &&
       this.end?.isValid &&
@@ -69,14 +75,16 @@ export class DateRangeControlsComponent implements OnInit {
     if (this.start?.isValid && this.end?.isValid) {
       return { start: DateTime.min(this.start, this.end), end: DateTime.max(this.start, this.end) };
     } else if (this.start?.isValid || this.end?.isValid) {
-      return { start: this.start?.isValid ? this.start : this.end };
+      const date = this.start?.isValid ? this.start : this.end;
+      return { start: date, end: date };
     } else {
       return {};
     }
   }
 
   ngOnInit() {
-    const thisMonth = DateTime.local().startOf('month');
+    const thisMonth = this.start?.isValid ? this.start.startOf('month') : DateTime.local().startOf('month');
+
     this.monthLeft = Interval.after(thisMonth.minus({ months: 1 }), { months: 1 });
     this.monthRight = Interval.after(thisMonth, { months: 1 });
   }
@@ -116,8 +124,10 @@ export class DateRangeControlsComponent implements OnInit {
 
   apply() {
     const { start, end } = this.rangeInclusive;
-    // Convert inclusive range to exclusive for the API
-    this.fromToChange.emit({ from: start, to: end?.plus({ days: 1 }) });
-    this.closeControls.emit();
+    if (start && end) {
+      // Convert inclusive range to exclusive for the API
+      this.fromToChange.emit({ from: start, to: end?.plus({ days: 1 }) });
+      this.closeControls.emit();
+    }
   }
 }

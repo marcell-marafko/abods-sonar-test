@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NgxTippyDirective } from 'ngx-tippy-wrapper';
+import { NgxTippyDirective, NgxTippyModule } from 'ngx-tippy-wrapper';
 import { PopoverComponent } from './popover.component';
 
 describe('PopoverComponent', () => {
@@ -8,6 +8,7 @@ describe('PopoverComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      imports: [NgxTippyModule],
       declarations: [PopoverComponent, NgxTippyDirective],
     }).compileComponents();
   });

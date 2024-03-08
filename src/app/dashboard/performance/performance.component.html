@@ -19,9 +19,16 @@
   [fromTo]="fromTo"
 ></app-performance-ranking>
 <div class="performance__footer">
-  <select class="govuk-select" id="period" name="period" (change)="changePeriod($event)">
-    <option value="last28">Last 28 days</option>
+  <select
+    [value]="period"
+    class="govuk-select"
+    id="period"
+    name="period"
+    (change)="changePeriod($event)"
+    aria-label="period"
+  >
     <option value="last7">Last 7 days</option>
+    <option value="last28">Last 28 days</option>
     <option value="monthToDate">Month to date</option>
     <option value="lastMonth">Last month</option>
   </select>

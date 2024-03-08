@@ -21,7 +21,7 @@
     align-items: center;
     justify-content: center;
     background: none;
-    padding: 3px;
+    padding: 0;
     &:focus {
       background: $govuk-focus-colour;
       .modal__close-icon {
@@ -31,10 +31,14 @@
   }
   &__close-icon {
     color: govuk-colour('white');
-    width: 18px;
-    height: 18px;
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     flex-shrink: 0;
+  }
+  &__content-scroll {
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
   }
   &__content {
     margin: 15px 15px 45px;

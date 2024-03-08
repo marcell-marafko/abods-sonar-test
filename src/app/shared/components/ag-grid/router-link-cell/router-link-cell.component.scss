@@ -36,4 +36,14 @@
     overflow: hidden;
     text-overflow: clip;
   }
+
+  &--flex-row {
+    display: flex;
+    flex-direction: row;
+  }
+
+  &--flex-row-reverse {
+    display: flex;
+    flex-direction: row-reverse;
+  }
 }

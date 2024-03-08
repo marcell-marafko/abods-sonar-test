@@ -11,11 +11,11 @@
 
 <ng-template #basicStat>
   <span *ngIf="!tooltip" class="stat__value">{{
-    statFormatter ? statFormatter?.call(this, statValue) : statValue
+    statFormatter ? format() : statValue
   }}</span>
   <app-tooltip *ngIf="tooltip" [message]="tooltip">
     <span class="stat__value stat__value--tooltip">{{
-      statFormatter ? statFormatter?.call(this, statValue) : statValue
+      statFormatter ? format() : statValue
     }}</span>
   </app-tooltip>
 </ng-template>

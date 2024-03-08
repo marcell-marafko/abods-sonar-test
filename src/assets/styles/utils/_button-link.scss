@@ -21,4 +21,17 @@
   &:hover:not(:focus) {
     text-decoration: underline;
   }
+  &--disabled {
+    color: $govuk-secondary-text-colour;
+    text-decoration: none;
+    &:hover:not(:focus) {
+      color: $govuk-secondary-text-colour;
+      text-decoration: none;
+      cursor: auto;
+    }
+    &:focus {
+      color: $govuk-secondary-text-colour;
+      text-decoration: none;
+    }
+  }
 }

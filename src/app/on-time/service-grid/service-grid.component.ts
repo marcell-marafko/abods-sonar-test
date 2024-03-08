@@ -1,16 +1,16 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ICellRendererParams } from 'ag-grid-community';
 import { DateTime } from 'luxon';
-import { of, Subject } from 'rxjs';
-import { tap, switchMap, catchError, takeUntil } from 'rxjs/operators';
+import { of, ReplaySubject, Subject } from 'rxjs';
+import { catchError, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { IconCellRendererComponent } from 'src/app/shared/components/ag-grid/icon-cell/icon-cell-renderer.component';
 import { RouterLinkCellRendererComponent } from 'src/app/shared/components/ag-grid/router-link-cell/router-link-cell.component';
 import { ColumnDescription } from '../on-time-grid/on-time-grid.component';
 import { OnTimeService, PerformanceParams, ServicePerformance } from '../on-time.service';
-import { ParamsService } from '../params.service';
 import { IconHeaderComponent } from '../../shared/components/ag-grid/icon-header/icon-header.component';
 import { PerformanceService } from '../performance.service';
-import { AgGridDomService } from 'src/app/shared/components/ag-grid/ag-grid-dom.service';
+import { EmptyCellComponent } from '../../shared/components/ag-grid/empty-cell/empty-cell.component';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-service-grid',
@@ -18,7 +18,7 @@ import { AgGridDomService } from 'src/app/shared/components/ag-grid/ag-grid-dom.
     noun="service"
     [columnDescriptions]="columnDescriptions"
     [errored]="errored"
-    [loading]="false"
+    [loading]="loading"
     [data]="data"
     [totalData]="totalData"
     [csvFilename]="csvFilename"
@@ -33,17 +33,23 @@ export class ServiceGridComponent implements OnInit, OnDestroy {
       isHideable: true,
       field: 'frequent',
       colId: 'freq',
-      headerComponentFramework: IconHeaderComponent,
+      headerComponent: IconHeaderComponent,
       headerComponentParams: { src: '/assets/icons/frequent.svg', tooltip: 'Service has periods of frequent running.' },
       headerName: 'Frequent service',
-      cellRendererFramework: IconCellRendererComponent,
+      cellRenderer: IconCellRendererComponent,
       cellRendererParams: { src: '/assets/icons/frequent.svg', label: 'Frequent service' },
-      pinnedRowCellRenderer: () => '',
+      cellRendererSelector: (params) => {
+        if (params.node.rowPinned) {
+          return {
+            component: EmptyCellComponent,
+          };
+        }
+      },
       minWidth: 60,
       width: 60,
       maxWidth: 60,
       cellClass: 'govuk-!-padding-left-3',
-      headerClass: 'govuk-!-padding-left-3',
+      headerClass: 'govuk-!-padding-left-3 govuk-!-padding-right-0',
       sortable: true,
       unSortIcon: true,
     },
@@ -56,15 +62,21 @@ export class ServiceGridComponent implements OnInit, OnDestroy {
       colId: 'service',
       valueGetter: ({ data }) => `${data.lineInfo?.serviceNumber}: ${data.lineInfo?.serviceName}`,
       headerName: 'Service',
-      cellRendererFramework: RouterLinkCellRendererComponent,
+      cellRenderer: RouterLinkCellRendererComponent,
       cellRendererParams: {
         routerLinkGetter: (params: ICellRendererParams) => [params.data.lineId],
-        queryParams: { tab: null },
-        queryParamsHandling: 'merge',
+        queryParamsHandling: 'preserve',
       },
-      pinnedRowCellRenderer: () => '',
+      cellRendererSelector: (params) => {
+        if (params.node.rowPinned) {
+          return {
+            component: EmptyCellComponent,
+          };
+        }
+      },
       suppressNavigable: false,
       minWidth: 250,
+      flex: 1,
       getQuickFilterText: ({ value }) => value,
     },
     {
@@ -95,7 +107,7 @@ export class ServiceGridComponent implements OnInit, OnDestroy {
       type: 'numericColumn',
     },
     {
-      title: 'Av. delay',
+      title: 'Average delay',
       columnType: 'AvDelay',
       isDefaultShown: true,
       isHideable: true,
@@ -161,23 +173,31 @@ export class ServiceGridComponent implements OnInit, OnDestroy {
   data: ServicePerformance[] = [];
   totalData: ServicePerformance[] = [];
 
+  @Input()
+  set params(params: PerformanceParams | null) {
+    if (params) {
+      this.params$.next(params);
+    }
+  }
+  private params$ = new ReplaySubject<PerformanceParams>(1);
+
   constructor(
     private performanceService: PerformanceService,
     private onTimeService: OnTimeService,
-    private paramsService: ParamsService
+    private route: ActivatedRoute
   ) {}
 
-  destroy$ = new Subject();
+  destroy$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.paramsService.params$
+    this.params$
       .pipe(
         tap((ps) => {
           this.errored = false;
           this.loading = true;
           this.csvFilename = this.calcCsvFilename(ps);
         }),
-        switchMap((params) =>
+        switchMap((params: PerformanceParams) =>
           this.performanceService.fetchServicePerformance(params).pipe(
             catchError(() => {
               this.errored = true;
@@ -201,10 +221,11 @@ export class ServiceGridComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  calcCsvFilename({ fromTimestamp, toTimestamp, filters: { nocCodes } }: PerformanceParams) {
-    const inclusiveTo = DateTime.fromJSDate(toTimestamp).minus({ minute: 1 });
-    return `Service_Performance_${nocCodes?.[0]}_${DateTime.fromJSDate(fromTimestamp).toFormat(
+  calcCsvFilename({ fromTimestamp, toTimestamp }: PerformanceParams) {
+    const inclusiveTo = DateTime.fromISO(toTimestamp).minus({ minute: 1 });
+    const noc = this.route.snapshot.paramMap.get('nocCode');
+    return `Service_Performance_${noc}_${DateTime.fromISO(fromTimestamp).toFormat('yy-MM-dd')}_-_${inclusiveTo.toFormat(
       'yy-MM-dd'
-    )}_-_${inclusiveTo.toFormat('yy-MM-dd')}`;
+    )}`;
   }
 }

@@ -44,5 +44,6 @@ $popup-colour: white;
     border-radius: 0;
     outline: 0;
     padding: govuk-spacing(2);
+    pointer-events: none;
   }
 }

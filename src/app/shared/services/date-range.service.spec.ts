@@ -1,6 +1,7 @@
 import { createServiceFactory, SpectatorService } from '@ngneat/spectator';
 import { DateTime } from 'luxon';
 import { dateTimeCloseEnoughToEqualityMatcher } from 'src/test-support/equality';
+import { Period } from '../components/date-range/date-range.types';
 import { DateRangeService } from './date-range.service';
 
 describe('DateRangeService', () => {
@@ -20,7 +21,7 @@ describe('DateRangeService', () => {
       const sevenDaysBefore = DateTime.fromISO('2021-02-02T10:01:00Z');
       const fourteenDaysBefore = DateTime.fromISO('2021-01-26T10:01:00Z');
 
-      expect(spectator.service.calculatePresetPeriod('last7', testNow)).toEqual(
+      expect(spectator.service.calculatePresetPeriod(Period.Last7, testNow)).toEqual(
         jasmine.objectContaining({
           from: sevenDaysBefore.startOf('day'),
           to: testNow.startOf('day'),
@@ -38,7 +39,7 @@ describe('DateRangeService', () => {
 
       const aMonthAgo = DateTime.fromISO('2021-01-09T10:01:00Z');
 
-      expect(spectator.service.calculatePresetPeriod('monthToDate', testNow)).toEqual(
+      expect(spectator.service.calculatePresetPeriod(Period.MonthToDate, testNow)).toEqual(
         jasmine.objectContaining({
           from: startOfMonth,
           to: testNow.startOf('day'),
@@ -58,7 +59,7 @@ describe('DateRangeService', () => {
       // Luxon kinda takes care of this for us, you could argue that the time here is odd, however
       const aMonthAgo = DateTime.fromISO('2021-02-28T10:01:00Z');
 
-      expect(spectator.service.calculatePresetPeriod('monthToDate', testNow)).toEqual(
+      expect(spectator.service.calculatePresetPeriod(Period.MonthToDate, testNow)).toEqual(
         jasmine.objectContaining({
           from: startOfMonth,
           to: testNow.startOf('day'),
@@ -73,7 +74,7 @@ describe('DateRangeService', () => {
 
       const expectedFrom = DateTime.fromISO('2021-02-01T00:00:00');
       const expectedTo = DateTime.fromISO('2021-03-01T00:00:00');
-      const { from, to } = spectator.service.calculatePresetPeriod('monthToDate', testToday);
+      const { from, to } = spectator.service.calculatePresetPeriod(Period.MonthToDate, testToday);
 
       expect(from).toEqual(expectedFrom);
       expect(to).toEqual(expectedTo);
@@ -84,7 +85,7 @@ describe('DateRangeService', () => {
 
       const expectedFrom = DateTime.fromISO('2021-03-01T00:00:00');
       const expectedTo = DateTime.fromISO('2021-03-02T00:00:00');
-      const { from, to } = spectator.service.calculatePresetPeriod('monthToDate', testToday);
+      const { from, to } = spectator.service.calculatePresetPeriod(Period.MonthToDate, testToday);
 
       expect(from).toEqual(expectedFrom);
       expect(to).toEqual(expectedTo);
@@ -99,7 +100,7 @@ describe('DateRangeService', () => {
       const startOfMonthBefore = DateTime.fromISO('2021-01-01T00:00:00Z');
       const endOfMonthBefore = DateTime.fromISO('2021-01-31T23:59:59.999Z');
 
-      expect(spectator.service.calculatePresetPeriod('monthToDate', testNow)).toEqual(
+      expect(spectator.service.calculatePresetPeriod(Period.LastMonth, testNow)).toEqual(
         jasmine.objectContaining({
           from: startOfLastMonth,
           to: endOfLastMonth,
@@ -115,7 +116,7 @@ describe('DateRangeService', () => {
       const twentyEightDaysBefore = DateTime.fromISO('2021-02-03T10:01:00Z').startOf('day');
       const fiftySixDaysBefore = DateTime.fromISO('2021-01-06T10:01:00Z').startOf('day');
 
-      expect(spectator.service.calculatePresetPeriod('monthToDate', testNow)).toEqual(
+      expect(spectator.service.calculatePresetPeriod(Period.Last28, testNow)).toEqual(
         jasmine.objectContaining({
           from: twentyEightDaysBefore,
           to: testNow.startOf('day'),

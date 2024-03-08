@@ -30,6 +30,9 @@ body {
     overflow-x: hidden;
     width: 100%;
   }
+  &.helpdesk-open {
+    overflow-y: hidden;
+  }
 }
 @include bp($to-desktop) {
   body {

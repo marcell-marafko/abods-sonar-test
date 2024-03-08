@@ -1,10 +1,12 @@
-query corridorsStopSearch($query: String!) {
+query corridorsStopSearch($inputs: AddFirstStopInputType) {
   corridor {
-    addFirstStop(searchString: $query) {
+    addFirstStop(inputs: $inputs) {
       stopId
       stopName
       lat
       lon
+      localityName
+      adminAreaId
     }
   }
 }
@@ -16,6 +18,8 @@ query corridorsSubsequentStops($stopList: [String]!) {
       stopName
       lon
       lat
+      localityName
+      adminAreaId
     }
   }
 }
@@ -39,6 +43,7 @@ query getCorridor($corridorId: Int!) {
       name
       stops {
         stopId
+        sourceId
         stopName
         stopLocation {
           latitude
@@ -109,6 +114,14 @@ query corridorStats($params: CorridorStatsInputType!) {
           freq
         }
       }
+
+      serviceLinks {
+        fromStop
+        toStop
+        distance
+        routeValidity
+        linkRoute
+      }
     }
   }
 }
@@ -124,5 +137,12 @@ mutation deleteCorridor($corridorId: Int!) {
   deleteCorridor(corridorId: $corridorId) {
     success
     error
+  }
+}
+
+mutation updateCorridor($inputs: CorridorUpdateInputType!) {
+  updateCorridor(inputs: $inputs) {
+    error
+    success
   }
 }

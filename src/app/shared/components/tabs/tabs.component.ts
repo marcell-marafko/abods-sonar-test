@@ -43,22 +43,26 @@ export class TabsComponent implements AfterContentInit {
     // Ensure a tab is always selected
     this.tabs?.changes.pipe(startWith([])).subscribe(() => {
       if (!this.tabs?.some(({ active }) => active) && this.tabs?.first) {
-        this.selectTab(this.tabs?.first);
+        this.tabs.first.active = true;
         this.changeDetectorRef.detectChanges();
       }
     });
   }
 
-  openTab(id: string) {
+  openTab(id: string, options?: { emit?: boolean }) {
     const tab = this.tabs?.find((tab) => tab.id === id);
     if (tab) {
-      this.selectTab(tab);
+      this.selectTab(tab, options);
+      return true;
     }
+    return false;
   }
 
-  selectTab(tab: TabComponent) {
+  selectTab(tab: TabComponent, options?: { emit?: boolean }) {
+    if (tab.active) return;
+
     this.tabs?.forEach((otab) => (otab.active = false));
     tab.active = true;
-    this.tabChanged.emit(tab);
+    if (options?.emit ?? true) this.tabChanged.emit(tab);
   }
 }

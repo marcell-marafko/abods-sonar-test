@@ -23,7 +23,7 @@ export class TimeOfDayChartComponent implements OnInit, OnDestroy {
 
   data$!: Observable<TimeOfDayData[] | null>;
   status$ = new Subject<AsyncStatus>();
-  destroy$ = new Subject();
+  destroy$ = new Subject<void>();
 
   constructor(private service: OnTimeService) {}
 

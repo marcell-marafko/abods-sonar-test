@@ -5,6 +5,7 @@ export interface SegmentedToggleGroup {
   selected: SegmentedToggleItemComponent | null;
   onChange: (value: unknown) => void;
   onTouch: () => void;
+  writeValue(value: string | undefined): void;
 }
 
 // Prevents circular dependency

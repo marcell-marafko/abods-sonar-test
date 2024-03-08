@@ -25,7 +25,7 @@
       (gridReady)="gridReady$.next()"
       (filterChanged)="filterChanged($event)"
       (paginationChanged)="paginationChanged$.next($event); paging.paginationChanged($event)"
-      [noRowsOverlayComponentFramework]="overlayComponent"
+      [noRowsOverlayComponent]="overlayComponent"
       [noRowsOverlayComponentParams]="overlayParams"
     >
     </ag-grid-angular>

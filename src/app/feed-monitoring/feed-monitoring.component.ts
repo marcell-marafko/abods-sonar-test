@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { GridOptions, AgGridEvent, GridApi, ICellRendererParams } from 'ag-grid-community';
+import { GridOptions, AgGridEvent, GridApi, ICellRendererParams, ColDef } from 'ag-grid-community';
 import { BehaviorSubject, Subject, Subscription } from 'rxjs';
 import { BasicOperatorFragment, Maybe, VehicleStatFragment } from 'src/generated/graphql';
 import { FeedMonitoringService } from './feed-monitoring.service';
@@ -26,12 +26,14 @@ export class FeedMonitoringComponent implements OnInit, AfterViewInit, OnDestroy
 
   loaded = false;
 
-  public gridOptions: GridOptions = {
-    headerHeight: 45,
-    rowHeight: 57,
-    rowSelection: 'single',
-    suppressCellSelection: false,
-    suppressDragLeaveHidesColumns: true,
+  public getDefaultGridOptions = (): GridOptions => {
+    return {
+      headerHeight: 45,
+      rowHeight: 57,
+      rowSelection: 'single',
+      suppressCellSelection: false,
+      suppressDragLeaveHidesColumns: true,
+    };
   };
   public inactiveGridApi?: GridApi;
   public activeGridApi?: GridApi;
@@ -61,7 +63,7 @@ export class FeedMonitoringComponent implements OnInit, AfterViewInit, OnDestroy
       }: {
         data: { feedMonitoring: { feedStatus: boolean } };
       }) => feedStatus,
-      cellRendererFramework: ActiveCellComponent,
+      cellRenderer: ActiveCellComponent,
       pinned: 'left',
       minWidth: 36,
       width: 36,
@@ -74,7 +76,7 @@ export class FeedMonitoringComponent implements OnInit, AfterViewInit, OnDestroy
       colId: 'nocCode',
       field: 'nocCode',
       headerName: 'NOC',
-      cellRendererFramework: SelectableTextCellRendererComponent,
+      cellRenderer: SelectableTextCellRendererComponent,
       cellRendererParams: { noWrap: true, textOverflow: 'visible' },
       pinned: 'left',
       suppressNavigable: false,
@@ -85,7 +87,7 @@ export class FeedMonitoringComponent implements OnInit, AfterViewInit, OnDestroy
       colId: 'name',
       field: 'name',
       headerName: 'Operator',
-      cellRendererFramework: RouterLinkCellRendererComponent,
+      cellRenderer: RouterLinkCellRendererComponent,
       cellRendererParams: {
         noWrap: true,
         bold: true,
@@ -167,23 +169,23 @@ export class FeedMonitoringComponent implements OnInit, AfterViewInit, OnDestroy
     },
     {
       colId: 'sparkline',
-      valueGetter: ({ data: { nocCode } }: { data: { nocCode: string } }) =>
-        this.sparklineStats.find((stat) => stat.nocCode === nocCode)?.last24Hours,
-      cellRendererFramework: SparklineCellComponent,
+      valueGetter: ({ data: { operatorId } }: { data: { operatorId: string } }) =>
+        this.sparklineStats.find((stat) => stat.operatorId === operatorId)?.last24Hours,
+      cellRenderer: SparklineCellComponent,
       minWidth: 300,
       maxWidth: 500,
       cellClass: 'ag-cell-last',
     },
   ];
 
-  activeColumns = this.activeColumnIds.map((c) => this.allColumns.find(({ colId }) => c === colId));
-  inactiveColumns = this.inactiveColumnIds.map((c) => this.allColumns.find(({ colId }) => c === colId));
+  activeColumns = this.activeColumnIds.map((c) => this.allColumns.find(({ colId }) => c === colId) as ColDef);
+  inactiveColumns = this.inactiveColumnIds.map((c) => this.allColumns.find(({ colId }) => c === colId) as ColDef);
 
   rawActiveOperators: Array<BasicOperatorFragment> = [];
   filteredActiveOperators: Array<BasicOperatorFragment> = [];
   inactiveOperators: Array<BasicOperatorFragment> = [];
 
-  sparklineStats: { nocCode?: string; last24Hours: VehicleStatFragment[] }[] = [];
+  sparklineStats: { operatorId?: string | null; last24Hours: VehicleStatFragment[] }[] = [];
 
   context: { sparklineTemplate?: SparklineCellTemplateComponent } = {};
 
@@ -228,14 +230,14 @@ export class FeedMonitoringComponent implements OnInit, AfterViewInit, OnDestroy
     this.subs.forEach((sub) => sub?.unsubscribe());
   }
 
-  onInactiveGridReady(params: AgGridEvent) {
+  onInactiveGridReady(params: AgGridEvent<any>) {
     this.inactiveGridApi = params.api;
     this.inactiveGridApi.sizeColumnsToFit();
     this.inactiveGridApi.resetRowHeights();
     this.inactiveGridReady.next(true);
   }
 
-  onActiveGridReady(params: AgGridEvent) {
+  onActiveGridReady(params: AgGridEvent<any>) {
     this.activeGridApi = params.api;
     this.activeGridApi.sizeColumnsToFit();
     this.activeGridApi.resetRowHeights();
@@ -246,21 +248,21 @@ export class FeedMonitoringComponent implements OnInit, AfterViewInit, OnDestroy
     this.activeFilterSubject.next((event.target as HTMLInputElement).value);
   }
 
-  postSort() {
+  postSortRows() {
     this.activeGridApi?.paginationGoToFirstPage();
   }
 
-  paginationChanged({ api }: AgGridEvent) {
+  paginationChanged({ api }: AgGridEvent<any>) {
     const rows = api
       .getRenderedNodes()
       .filter(
-        ({ data: { nocCode } }) =>
-          !this.sparklineStats.some(({ nocCode: existingNocCode }) => existingNocCode === nocCode)
+        ({ data: { operatorId } }) =>
+          !this.sparklineStats.some(({ operatorId: existingOperatorId }) => existingOperatorId === operatorId)
       );
 
     if (rows.length > 0) {
       this.subs.push(
-        this.fmService.fetchOperatorSparklines(rows.map(({ data: { nocCode } }) => nocCode)).subscribe((data) => {
+        this.fmService.fetchOperatorSparklines(rows.map(({ data: { operatorId } }) => operatorId)).subscribe((data) => {
           if (data) {
             this.sparklineStats.push(...data);
             api.refreshCells({ rowNodes: rows });

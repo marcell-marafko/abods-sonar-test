@@ -1,33 +1,27 @@
 import { Injectable } from '@angular/core';
 import { DateTime } from 'luxon';
-import { FromTo } from '../components/date-range/date-range.types';
-
-export enum Period {
-  Last28 = 'last28',
-  Last7 = 'last7',
-  LastMonth = 'lastMonth',
-  MonthToDate = 'monthToDate',
-}
+import { FromTo, Period, Preset } from '../components/date-range/date-range.types';
 
 export interface WindowDatetimes {
   from: DateTime;
   to: DateTime;
   trendFrom: DateTime;
   trendTo: DateTime;
+  preset: Preset;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class DateRangeService {
-  calculatePresetPeriod(period: string, now: DateTime): WindowDatetimes {
+  calculatePresetPeriod(preset: Period, now: DateTime): WindowDatetimes {
     let to: DateTime = now.startOf('day');
     let from: DateTime;
 
     let trendTo: DateTime;
     let trendFrom: DateTime;
 
-    switch (period) {
+    switch (preset) {
       case Period.Last7:
         from = to.minus({ days: 7 });
         trendTo = from;
@@ -52,28 +46,26 @@ export class DateRangeService {
         trendFrom = from.minus({ days: 28 });
         break;
     }
-    return { from, to, trendFrom, trendTo };
+    return { preset, from, to, trendFrom, trendTo };
   }
 
-  inverseLookup({ from, to }: FromTo, now: DateTime): 'last28' | 'last7' | 'lastMonth' | 'monthToDate' | 'custom' {
-    if (!from?.isValid || !to?.isValid) {
-      return 'custom';
-    }
-
-    if (now.hasSame(to, 'day')) {
-      if (now.minus({ days: 28 }).hasSame(from, 'day')) {
-        return 'last28';
-      } else if (now.minus({ days: 7 }).hasSame(from, 'day')) {
-        return 'last7';
-      } else if (now.startOf('month').hasSame(from, 'day')) {
-        return 'monthToDate';
+  inverseLookup({ from, to }: FromTo, now: DateTime): Preset {
+    if (from?.isValid && to?.isValid) {
+      if (now.hasSame(to, 'day')) {
+        if (now.minus({ days: 28 }).hasSame(from, 'day')) {
+          return Preset.Last28;
+        } else if (now.minus({ days: 7 }).hasSame(from, 'day')) {
+          return Preset.Last7;
+        } else if (now.startOf('month').hasSame(from, 'day')) {
+          return Preset.MonthToDate;
+        }
+      } else if (
+        from.plus({ months: 1 }).hasSame(to, 'day') &&
+        now.minus({ months: 1 }).startOf('month').hasSame(from, 'day')
+      ) {
+        return Preset.LastMonth;
       }
-    } else if (
-      from.plus({ months: 1 }).hasSame(to, 'day') &&
-      now.minus({ months: 1 }).startOf('month').hasSame(from, 'day')
-    ) {
-      return 'lastMonth';
     }
-    return 'custom';
+    return Preset.Custom;
   }
 }

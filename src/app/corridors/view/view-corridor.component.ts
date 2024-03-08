@@ -3,44 +3,82 @@ import { FormControl } from '@angular/forms';
 import { DateTime, Duration } from 'luxon';
 import { DateRangeService } from '../../shared/services/date-range.service';
 import { ActivatedRoute } from '@angular/router';
-import { catchError, distinctUntilChanged, finalize, map, startWith, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { catchError, map, startWith, switchMap, tap, takeUntil } from 'rxjs/operators';
 import { CorridorGranularity } from '../../../generated/graphql';
-import { FromTo } from '../../shared/components/date-range/date-range.types';
+import { FromTo, Preset } from '../../shared/components/date-range/date-range.types';
 import { combineLatest, of, Subject } from 'rxjs';
 import { Corridor, CorridorsService, CorridorStats, CorridorStatsViewParams, Stop } from '../corridors.service';
 import { AgGridEvent, ColDef, GridOptions } from 'ag-grid-community';
 import { BRITISH_ISLES_BBOX, position } from '../../shared/geo';
-import { bbox, featureCollection, lineString, point } from '@turf/turf';
-import { FeatureCollection, LineString, Point } from 'geojson';
+import { featureCollection, lineString, point } from '@turf/helpers';
+import bbox from '@turf/bbox';
+import { FeatureCollection, LineString, Point, Position } from 'geojson';
 import { BBox2d } from '@turf/helpers/dist/js/lib/geojson';
 import { MapComponent } from 'ngx-mapbox-gl';
 import { MapboxGeoJSONFeature } from 'mapbox-gl';
-import { pairwise } from '../segment-selector/segment-selector.component';
+import { pairwise } from '../../shared/array-operators';
 import { SelectableTextCellRendererComponent } from '../../shared/components/ag-grid/selectable-text-cell/selectable-text-cell.component';
 import { AgGridDirective } from '../../shared/components/ag-grid/ag-grid.directive';
 import { AgGridDomService } from '../../shared/components/ag-grid/ag-grid-dom.service';
+import { CorridorsSpeedMetricService, SpeedStats } from '../corridors-speed-metric.service';
+import { chartColors } from '../../shared/components/amcharts/chart.service';
+import { ConfigService } from '../../config/config.service';
+import { isNotNullOrUndefined } from '../../shared/rxjs-operators';
+import { CorridorNotFoundView } from '../corridor-not-found-view.model';
+import { HideOutliersService } from './hide-outliers.service';
 
 @Component({
   templateUrl: 'view-corridor.component.html',
   styleUrls: ['./view-corridor.component.scss'],
 })
 export class ViewCorridorComponent implements OnInit, OnDestroy {
-  dateRange = new FormControl(this.dateRangeService.calculatePresetPeriod('last28', DateTime.local()));
-  loadingCorridor = false;
-  errorMessage?: string;
-  errorHeading?: string;
+  dateRange = new FormControl(this.dateRangeService.calculatePresetPeriod(Preset.Last7, DateTime.local()), {
+    nonNullable: true,
+  });
+  errorView?: CorridorNotFoundView;
   corridor?: Corridor;
   stats?: CorridorStats;
   loadingStats?: boolean;
   params?: CorridorStatsViewParams;
   selectedStops$ = new Subject<Stop[]>();
-  onDestroy$ = new Subject();
+  onDestroy$ = new Subject<void>();
+  moveCounter = 0;
+
+  speedStats?: SpeedStats;
+  mode: 'time' | 'speed' = 'time';
+
+  get isTime(): boolean {
+    return this.mode === 'time';
+  }
 
   bounds = BRITISH_ISLES_BBOX;
   corridorLine?: FeatureCollection<LineString, { segmentId: string }>;
   corridorStops?: FeatureCollection<Point, Stop>;
   popupStop?: Stop;
   selectAll = true;
+
+  set hideOutliersJourneyTime(value: boolean) {
+    this.hideOutliersService.hideOutliersJourneyTime = value;
+  }
+  get hideOutliersJourneyTime(): boolean {
+    return this.hideOutliersService.hideOutliersJourneyTime;
+  }
+
+  set hideOutliersTimeOfDay(value: boolean) {
+    this.hideOutliersService.hideOutliersTimeOfDay = value;
+  }
+  get hideOutliersTimeOfDay(): boolean {
+    return this.hideOutliersService.hideOutliersTimeOfDay;
+  }
+
+  set hideOutliersDayOfWeek(value: boolean) {
+    this.hideOutliersService.hideOutliersDayOfWeek = value;
+  }
+  get hideOutliersDayOfWeek(): boolean {
+    return this.hideOutliersService.hideOutliersDayOfWeek;
+  }
+
+  chartColors = chartColors;
 
   gridOptions: GridOptions = {
     rowSelection: 'single',
@@ -53,7 +91,7 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
     {
       headerName: 'Service',
       valueGetter: ({ data }) => `${data.lineName}: ${data.servicePatternName}`,
-      cellRendererFramework: SelectableTextCellRendererComponent,
+      cellRenderer: SelectableTextCellRendererComponent,
       cellRendererParams: { noWrap: true, textOverflow: 'ellipsis' },
       comparator: (a, b) => a?.localeCompare(b, undefined, { numeric: true }),
       flex: 1,
@@ -62,14 +100,14 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
     {
       field: 'noc',
       headerName: 'NOC',
-      cellRendererFramework: SelectableTextCellRendererComponent,
+      cellRenderer: SelectableTextCellRendererComponent,
       cellRendererParams: { noWrap: true, textOverflow: 'visible' },
       maxWidth: 90,
     },
     {
       field: 'operatorName',
       headerName: 'Operator',
-      cellRendererFramework: SelectableTextCellRendererComponent,
+      cellRenderer: SelectableTextCellRendererComponent,
       cellRendererParams: { noWrap: true, textOverflow: 'visible' },
       minWidth: 170,
       maxWidth: 470,
@@ -82,6 +120,17 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
       type: 'numericColumn',
       valueGetter: ({ data }) => data.totalJourneyTime / data.recordedTransits,
       valueFormatter: ({ value }) => Duration.fromObject({ seconds: value }).toFormat('mm:ss'),
+      maxWidth: 160,
+    },
+    {
+      headerName: 'Average speed',
+      type: 'numericColumn',
+      valueGetter: ({ data }) =>
+        this.corridorsSpeedmetricService.calculateAvergeSpeedInMph(
+          this.corridorsSpeedmetricService.getTotalDistance(),
+          data.totalJourneyTime / data.recordedTransits
+        ),
+      valueFormatter: ({ value }) => (value ?? 0) + 'mph',
       maxWidth: 160,
     },
   ];
@@ -99,8 +148,22 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
     private dateRangeService: DateRangeService,
     private corridorsService: CorridorsService,
     private route: ActivatedRoute,
-    private agGridDomService: AgGridDomService
+    private agGridDomService: AgGridDomService,
+    private corridorsSpeedmetricService: CorridorsSpeedMetricService,
+    private config: ConfigService,
+    private hideOutliersService: HideOutliersService
   ) {}
+
+  private selectedSegment: [Stop, Stop] | undefined;
+  private init = false;
+
+  private _mapboxStyle: string = this.config.mapboxStyle;
+  set mapboxStyle(style: string) {
+    this._mapboxStyle = style;
+  }
+  get mapboxStyle(): string {
+    return this._mapboxStyle;
+  }
 
   get averageJourneyTime(): Duration {
     return Duration.fromObject({ seconds: this.stats?.summaryStats?.averageJourneyTime ?? undefined });
@@ -108,8 +171,8 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
 
   get missingTransits(): number | undefined {
     const summary = this.stats?.summaryStats;
-    return summary?.scheduledTransits && summary?.totalTransits
-      ? summary?.scheduledTransits - summary?.totalTransits
+    return isNotNullOrUndefined(summary?.scheduledTransits) && isNotNullOrUndefined(summary?.totalTransits)
+      ? (summary?.scheduledTransits as number) - (summary?.totalTransits as number)
       : undefined;
   }
 
@@ -120,74 +183,66 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    const corridorId$ = this.route.paramMap.pipe(
-      takeUntil(this.onDestroy$),
-      map((paramMap) => paramMap.get('corridorId') as string)
-    );
+    const view: CorridorNotFoundView | Corridor = this.route.snapshot.data['corridor'];
+    view instanceof CorridorNotFoundView ? (this.errorView = view) : (this.corridor = view);
 
-    corridorId$
-      .pipe(
-        distinctUntilChanged(),
-        tap(() => {
-          this.loadingCorridor = true;
-          this.errorMessage = undefined;
-          this.errorHeading = undefined;
-        }),
-        switchMap((corridorId) =>
-          this.corridorsService.fetchCorridorById(Number(corridorId)).pipe(
-            catchError((err) => {
-              const errorMessage = err as string;
-              if (
-                errorMessage === 'Corridor does not exist.' ||
-                errorMessage.match(/Variable \S+ of non-null type \S+ must not be null/)
-              ) {
-                this.errorHeading = 'Not found';
-                this.errorMessage = 'Corridor not found, or you do not have permission to view.';
-              } else {
-                this.errorMessage = errorMessage;
-              }
-              return of(undefined);
-            })
-          )
-        )
-      )
-      .subscribe((corridor) => {
-        this.corridor = corridor;
-        this.loadingCorridor = false;
-
-        if (corridor) {
-          this.corridorLine = featureCollection(
-            pairwise(corridor.stops).map((segment) =>
-              lineString([position(segment[0]), position(segment[1])], {
-                segmentId: segment[0].stopId + segment[1].stopId,
-              })
+    if (this.corridor) {
+      combineLatest([
+        this.dateRange.valueChanges.pipe(startWith(this.dateRange.value as FromTo)),
+        this.selectedStops$.pipe(startWith([])),
+      ])
+        .pipe(
+          map(([{ from, to }, stops]) =>
+            this.granularParams(
+              from,
+              to,
+              (this.corridor as Corridor).id.toString(),
+              stops.length ? stops : (this.corridor?.stops as Stop[])
             )
-          );
-          this.corridorStops = featureCollection(corridor.stops.map((stop) => point(position(stop), stop)));
-          this.bounds = bbox(this.corridorLine) as BBox2d;
-        }
-      });
-
-    combineLatest([
-      this.dateRange.valueChanges.pipe(startWith(this.dateRange.value as FromTo)),
-      corridorId$,
-      this.selectedStops$.pipe(startWith([])),
-    ])
-      .pipe(
-        map(([{ from, to }, corridorId, stops]) => this.granularParams(from, to, corridorId, stops)),
-        tap(() => (this.loadingStats = true)),
-        switchMap((params) =>
-          this.corridorsService.fetchStats(params).pipe(
-            finalize(() => (this.loadingStats = false)),
-            map((stats) => ({ stats, params })),
-            catchError(() => of({ stats: undefined, params: undefined }))
-          )
+          ),
+          tap(() => (this.loadingStats = true)),
+          switchMap((params) =>
+            this.corridorsService.fetchStats(params).pipe(
+              map((stats) => ({ stats, params })),
+              catchError(() => of({ stats: undefined, params: undefined })),
+              tap(() => (this.loadingStats = false))
+            )
+          ),
+          takeUntil(this.onDestroy$)
         )
-      )
-      .subscribe(({ stats, params }) => {
-        this.stats = stats;
-        this.params = params;
-      });
+        .subscribe(({ stats, params }) => {
+          this.stats = stats;
+          this.params = params;
+          this.speedStats = this.corridorsSpeedmetricService.generateSpeedStats(this.stats, params);
+          this.corridorLine = featureCollection(
+            pairwise((this.corridor as Corridor).stops).map((segment) => {
+              const line = this.setCoordinates(segment);
+              return lineString(line, {
+                segmentId: segment[0].stopId + segment[1].stopId,
+                dashedLine: line.length <= 2,
+              });
+            })
+          );
+          this.corridorStops = featureCollection(
+            (this.corridor as Corridor).stops.map((stop) => point(position(stop), stop))
+          );
+          if (!this.init) {
+            this.setMapBoundsToCorridor();
+            this.init = true;
+          }
+        });
+    }
+  }
+
+  setCoordinates(segment: Stop[]): Position[] {
+    const serviceLink = this.stats?.serviceLinks.find(
+      (serviceLink) => serviceLink.fromStop === segment[0].stopId && serviceLink.toStop === segment[1].stopId
+    );
+    if (serviceLink) {
+      return JSON.parse(serviceLink.linkRoute as string);
+    } else {
+      return [position(segment[0]), position(segment[1])];
+    }
   }
 
   granularParams(from: DateTime, to: DateTime, corridorId: string, stops: Stop[]): CorridorStatsViewParams {
@@ -201,15 +256,24 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
     };
   }
 
-  setMapSelectedState(segment: [Stop, Stop] | []) {
+  onSelectSegment(segment: [Stop, Stop] | []) {
     if (!segment?.length) {
       this.selectAll = true;
+      this.setMapBoundsToCorridor();
       return;
     }
-    this.map?.mapInstance.setFeatureState(
-      { source: 'corridor-line', id: segment[0].stopId + segment[1].stopId },
-      { selected: true }
-    );
+    this.selectedSegment = segment;
+    this.setMapSelectedState(segment);
+    this.setMapBoundsToSegment(segment as [Stop, Stop]);
+  }
+
+  setMapSelectedState(segment: [Stop, Stop]) {
+    if (this.map?.mapInstance.getSource('corridor-line')) {
+      this.map?.mapInstance.setFeatureState(
+        { source: 'corridor-line', id: segment[0].stopId + segment[1].stopId },
+        { selected: true }
+      );
+    }
   }
 
   clearMapSelectedState(segment: [Stop, Stop] | []) {
@@ -217,6 +281,7 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
       this.selectAll = false;
       return;
     }
+    this.selectedSegment = undefined;
     this.map?.mapInstance.removeFeatureState(
       { source: 'corridor-line', id: segment[0].stopId + segment[1].stopId },
       'selected'
@@ -224,14 +289,14 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
   }
 
   setMapHoverState(stop?: Stop) {
-    if (!stop) {
+    if (!stop || this.loadingStats) {
       return;
     }
     this.map?.mapInstance.setFeatureState({ source: 'corridor-stops', id: stop.stopId }, { hover: true });
   }
 
   clearMapHoverState(stop?: Stop) {
-    if (!stop) {
+    if (!stop || this.loadingStats) {
       return;
     }
     this.map?.mapInstance.removeFeatureState({ source: 'corridor-stops', id: stop.stopId }, 'hover');
@@ -246,9 +311,41 @@ export class ViewCorridorComponent implements OnInit, OnDestroy {
     this.agGrid?.gridApi?.setHeaderHeight(this.agGridDomService.headerHeight() + padding);
   }
 
-  onGridReady(params: AgGridEvent) {
+  onGridReady(params: AgGridEvent<any>) {
     params.api.sizeColumnsToFit();
-    params.api.resetRowHeights();
     params.api.setDomLayout('autoHeight');
+  }
+
+  centreMapBounds() {
+    if (this.selectedSegment) {
+      this.setMapBoundsToSegment(this.selectedSegment);
+      this.moveCounter = 0;
+    } else if (this.corridorLine) {
+      this.bounds = bbox(this.corridorLine) as BBox2d;
+      this.moveCounter = 0;
+    }
+  }
+
+  onStyleLoad() {
+    if (this.selectedSegment) {
+      // Mapbox clears the selected segement feature state when we change styles
+      // So we need to re-apply sselected segement feature state once style has loaded
+      this.setMapSelectedState(this.selectedSegment);
+    }
+  }
+
+  setMapBoundsToCorridor() {
+    this.moveCounter = 0;
+    this.bounds = bbox(this.corridorLine) as BBox2d;
+  }
+
+  setMapBoundsToSegment(segment: [Stop, Stop]) {
+    this.moveCounter = 0;
+    this.bounds = bbox(
+      lineString([
+        [segment[0].lon, segment[0].lat],
+        [segment[1].lon, segment[1].lat],
+      ])
+    ) as BBox2d;
   }
 }

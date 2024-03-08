@@ -9,7 +9,7 @@ export class AgGridDirective {
   gridApi?: GridApi;
   columnApi?: ColumnApi;
 
-  @HostListener('gridReady', ['$event']) gridReady(event: AgGridEvent) {
+  @HostListener('gridReady', ['$event']) gridReady(event: AgGridEvent<any>) {
     this.gridApi = event.api;
     this.columnApi = event.columnApi;
     this.agGridReady.emit();

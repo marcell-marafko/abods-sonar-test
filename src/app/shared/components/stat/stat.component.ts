@@ -8,11 +8,15 @@ import { AfterViewInit, Component, ContentChild, Input, TemplateRef } from '@ang
 export class StatComponent<T> implements AfterViewInit {
   @Input() label?: string;
   @Input() statValue?: T;
-  @Input() tooltip?: string;
+  @Input() tooltip?: string | TemplateRef<any>;
   @Input() identifier?: string;
   @Input() statLoaded = true;
   @ContentChild('statTemplate') statTemplate?: TemplateRef<T>;
-  @Input() statFormatter?: (t: T | undefined) => string;
+  @Input() statFormatter?: (t: T) => string;
+
+  format(): string {
+    return this.statFormatter?.call(this, this.statValue ?? <T>{}) ?? '';
+  }
 
   ngAfterViewInit(): void {
     if (this.statFormatter && this.statTemplate) {

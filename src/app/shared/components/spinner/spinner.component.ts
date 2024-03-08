@@ -8,7 +8,7 @@ import { Component, Input } from '@angular/core';
 export class SpinnerComponent {
   @Input() message!: string;
   @Input() vCentre? = false;
-  @Input() size?: 'small' | 'default' = 'default';
+  @Input() size?: 'x-small' | 'small' | 'default' = 'default';
 
   get spinnerClasses() {
     return {

@@ -21,7 +21,9 @@ export class StopPerformanceService {
     );
 
     // Get on-time performance data and scale the values to fit a unit normal distribution
-    const otpStops = this.normalize(stopPerformance.filter((stop) => stop.early + stop.onTime + stop.late > 0));
+    const otpStops = this.normalize(
+      stopPerformance.filter((stop) => stop.early + stop.onTime + stop.late > 0 || stop.timingPoint)
+    );
 
     // Theres no guarantee that the transit model and OTP model have the same stops, so use both and merge by stopId
     const mergedStops = values(merge(keyBy(mutable(tmStops), 'stopId'), keyBy(otpStops, 'stopId')));

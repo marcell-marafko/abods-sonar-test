@@ -75,7 +75,7 @@ describe('DateRangeControlsComponent', () => {
     expect(fromToValue).not.toHaveBeenCalled();
   });
 
-  it('should not allow a single date to be applied', () => {
+  it('should allow a single date to be applied', () => {
     const fromToValue = spyOn(component.fromToChange, 'emit');
     const closeControls = spyOn(component.closeControls, 'emit');
 
@@ -87,8 +87,14 @@ describe('DateRangeControlsComponent', () => {
 
     spectator.detectChanges();
 
-    expect(closeControls).not.toHaveBeenCalled();
-    expect(fromToValue).not.toHaveBeenCalled();
+    expect(closeControls).toHaveBeenCalledWith();
+    expect(fromToValue).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        from: DateTime.fromISO('2021-01-04T00:00:00.000Z'),
+        // to date is _not_ included in the range
+        to: DateTime.fromISO('2021-01-05T00:00:00.000Z'),
+      })
+    );
   });
 
   it('should not emit dates if cancelled', () => {

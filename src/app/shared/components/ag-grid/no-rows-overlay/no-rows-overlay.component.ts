@@ -5,6 +5,9 @@ import { AgGridDomService } from '../ag-grid-dom.service';
 
 export type NoRowsOverlayParams = INoRowsOverlayParams & { message: string };
 
+/**
+ * @deprecated not compatible with screen readers. use another way of showing a message.
+ */
 @Component({
   template: `<div class="no-rows-overlay" [style.height.px]="viewportHeight">{{ message }}</div>`,
   styleUrls: ['./no-rows-overlay.component.scss'],

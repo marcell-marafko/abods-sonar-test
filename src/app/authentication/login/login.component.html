@@ -17,9 +17,11 @@
               width="20"
               [error]="getError('username')"
               [required]="true"
+              (blurred)="onEmailBlur()"
+              autocomplete="username"
             >
             </gds-text-input>
-            <gds-text-input
+            <gds-password-input
               inputId="login-password"
               formControlName="password"
               type="password"
@@ -27,8 +29,11 @@
               width="20"
               [error]="getError('password')"
               [required]="true"
-            ></gds-text-input>
-            <gds-button text="Sign in" type="submit"></gds-button>
+              autocomplete="current-password"
+            ></gds-password-input>
+            <div [style.max-width]="'41ex'">
+              <gds-button text="Sign in" type="submit"></gds-button>
+            </div>
           </div>
           <div class="govuk-grid-column-one-third-from-desktop govuk-body">
             <h2 class="govuk-heading-m">Forgot your password?</h2>

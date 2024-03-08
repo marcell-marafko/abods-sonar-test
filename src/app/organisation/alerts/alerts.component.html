@@ -26,7 +26,7 @@
         </div>
         <a
           *ngIf="alert.alertId && (authUserIsAdmin || alert.sendToId === authenticatedUser?.id)"
-          [routerLink]=""
+          [routerLink]="[]"
           (click)="editAlert(alert.alertId)"
           class="govuk-link alerts__edit-link"
           >Edit</a
@@ -45,7 +45,7 @@
       (click)="createAlert()"
     ></gds-button>
     <!-- create alert modal-->
-    <app-modal [title]="(modalEditing ? 'Update' : 'Create') + ' feed notification'" identifier="editAlertModal">
+    <app-modal [modalTitle]="(modalEditing ? 'Update' : 'Create') + ' feed notification'" identifier="editAlertModal">
       <app-edit-alert (openEdit)="openEditModal($event)" (closeEdit)="closeEditModal()"></app-edit-alert>
     </app-modal>
   </ng-container>

@@ -2,34 +2,42 @@
   <form (submit)="apply()">
     <div class="date-range-controls__date-range">
       <section class="date-range-controls__dates">
-        <app-stack childMin="200px">
+        <app-stack childMin="322px">
           <gds-text-input
             inputId="dateRangeStart"
-            type="date"
+            [type]="start?.isValid || startFocused ? 'date' : 'text'"
+            [placeholder]="start?.isValid || startFocused ? '' : placeholder"
             label="Starting"
             [(ngModel)]="starting"
             [ngModelOptions]="{ standalone: true }"
             [max]="today | dateTimeToIsoDate"
             [noCal]="true"
             [autofocus]="true"
+            (focussed)="startFocused = true"
+            (blurred)="startFocused = false"
           ></gds-text-input>
           <gds-text-input
             inputId="dateRangeEnd"
+            [type]="end?.isValid || endFocused ? 'date' : 'text'"
+            [placeholder]="end?.isValid || endFocused ? '' : placeholder"
             type="date"
             label="Ending"
             [(ngModel)]="ending"
             [ngModelOptions]="{ standalone: true }"
             [max]="today | dateTimeToIsoDate"
             [noCal]="true"
+            (focussed)="endFocused = true"
+            (blurred)="endFocused = false"
           ></gds-text-input>
         </app-stack>
       </section>
       <div class="date-range-controls__calendar-wrapper">
-        <app-stack childMin="200px">
+        <app-stack childMin="322px">
           <section class="date-range-controls__calendar">
             <div class="date-range-controls__calendar-header">
               <button
                 (click)="prevMonth($event)"
+                tabindex="-1"
                 class="date-range-controls__month-step date-range-controls__month-step--prev unbuttoned"
                 [ngClass]="{ 'date-range-controls__month-step--disabled': prevMonthDisabled }"
               >
@@ -60,6 +68,7 @@
               >
               <button
                 (click)="nextMonth($event)"
+                tabindex="-1"
                 class="date-range-controls__month-step date-range-controls__month-step--next unbuttoned"
                 [ngClass]="{ 'date-range-controls__month-step--disabled': nextMonthDisabled }"
               >

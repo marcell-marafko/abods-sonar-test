@@ -1,5 +1,5 @@
-import { ChangeDetectorRef, Component, forwardRef, HostListener } from '@angular/core';
-import { FromTo } from './date-range.types';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, HostListener } from '@angular/core';
+import { FromTo, FromToPreset, Period, Preset } from './date-range.types';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { DateTime } from 'luxon';
 import { DateRangeService } from '../../services/date-range.service';
@@ -15,20 +15,28 @@ import { DateRangeService } from '../../services/date-range.service';
       multi: true,
     },
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DateRangeComponent implements ControlValueAccessor {
-  value: FromTo = {};
-  presetDateRange = 'last28';
+  value: FromToPreset;
   open = false;
-  fromToStr = '';
 
-  constructor(private dateRangeService: DateRangeService, private changeDetector: ChangeDetectorRef) {}
+  get fromTo(): FromTo {
+    return this.value;
+  }
+  set fromTo(fromTo: FromTo) {
+    this.writeValue({ ...fromTo, preset: Preset.Custom });
+  }
 
-  onChange: (value: FromTo) => void = () => {
+  constructor(private dateRangeService: DateRangeService, private changeDetector: ChangeDetectorRef) {
+    this.value = dateRangeService.calculatePresetPeriod(Period.Last7, DateTime.local());
+  }
+
+  onChange: (value: FromToPreset) => void = () => {
     // Do nothing
   };
 
-  registerOnChange(fn: (value: FromTo) => void): void {
+  registerOnChange(fn: (value: FromToPreset) => void): void {
     this.onChange = fn;
   }
 
@@ -36,18 +44,17 @@ export class DateRangeComponent implements ControlValueAccessor {
     // Unused
   }
 
-  writeValue(value: FromTo): void {
+  writeValue(value: FromToPreset): void {
     this.value = value;
-    this.setFromToStr(value);
-    this.presetDateRange = this.dateRangeService.inverseLookup(value, DateTime.local());
     this.changeDetector.detectChanges();
   }
 
-  private setFromToStr(fromTo: FromTo) {
-    const { from, to } = fromTo;
+  get fromToStr(): string {
+    const { from, to } = this.value;
     if (from && to) {
-      this.fromToStr = `${from.toFormat('dd MMM yyyy')} - ${to.minus({ days: 1 }).toFormat('dd MMM yyyy')}`;
+      return `${from.toFormat('dd MMM yyyy')} - ${to.minus({ days: 1 }).toFormat('dd MMM yyyy')}`;
     }
+    return '';
   }
 
   openControls() {
@@ -70,18 +77,14 @@ export class DateRangeComponent implements ControlValueAccessor {
   }
 
   pickDateRange(value: FromTo) {
-    this.onChange(value);
-    this.setFromToStr(value);
-    this.presetDateRange = this.dateRangeService.inverseLookup(this.value, DateTime.local());
+    this.onChange({ ...value, preset: Preset.Custom });
   }
 
   selectPresetDateRange(preset: string) {
-    this.presetDateRange = preset;
-    if (preset !== 'custom') {
-      const { from, to } = this.dateRangeService.calculatePresetPeriod(this.presetDateRange, DateTime.local());
-      this.value = { from, to };
+    const period = preset as Preset;
+    if (period !== Preset.Custom) {
+      this.value = this.dateRangeService.calculatePresetPeriod(period, DateTime.local());
       this.onChange(this.value);
-      this.setFromToStr(this.value);
     }
   }
 }

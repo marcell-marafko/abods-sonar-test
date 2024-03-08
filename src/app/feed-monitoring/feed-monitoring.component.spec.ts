@@ -51,7 +51,7 @@ describe('FeedMonitoringComponent', () => {
     expect(service.fetchFeedMonitoringList).toHaveBeenCalledWith();
   });
 
-  it('should display inactive operator table', async (done) => {
+  it('should display inactive operator table', async () => {
     const data = inactiveOperators;
 
     const ops = cold('--a', {
@@ -63,24 +63,18 @@ describe('FeedMonitoringComponent', () => {
     getTestScheduler().flush();
     fixture.detectChanges();
 
-    component.inactiveGridReady.subscribe((ready) => {
-      if (ready) {
-        const inactiveGrid = fixture.debugElement.query(By.css('.feed-monitoring__inactive-grid'));
+    const inactiveGrid = fixture.debugElement.query(By.css('.feed-monitoring__inactive-grid'));
 
-        expect(inactiveGrid).toBeTruthy();
+    expect(inactiveGrid).toBeTruthy();
 
-        const headers = inactiveGrid.queryAll(By.css('.ag-header-cell-text')).map((x) => x.nativeElement.innerHTML);
+    const headers = inactiveGrid.queryAll(By.css('.ag-header-cell-text')).map((x) => x.nativeElement.innerHTML);
 
-        expect(headers).toEqual(
-          jasmine.arrayContaining(['Operator', 'Feed availability', 'Update frequency', 'Unavailable since'])
-        );
-
-        done();
-      }
-    });
+    expect(headers).toEqual(
+      jasmine.arrayContaining(['Operator', 'Feed availability', 'Update frequency', 'Unavailable since'])
+    );
   });
 
-  it('should display data in inactive operator table', async (done) => {
+  it('should display data in inactive operator table', async () => {
     const data = inactiveOperators;
 
     const ops = cold('--a', {
@@ -92,29 +86,23 @@ describe('FeedMonitoringComponent', () => {
     getTestScheduler().flush();
     fixture.detectChanges();
 
-    component.inactiveGridReady.subscribe((ready) => {
-      if (ready) {
-        const inactiveGrid = fixture.debugElement.query(By.css('.feed-monitoring__inactive-grid'));
+    const inactiveGrid = fixture.debugElement.query(By.css('.feed-monitoring__inactive-grid'));
 
-        expect(inactiveGrid).toBeTruthy();
-        const row0 = inactiveGrid.query(By.css('[role="row"][row-index="0"]'));
+    expect(inactiveGrid).toBeTruthy();
+    const row0 = inactiveGrid.query(By.css('[role="row"][row-index="0"]'));
 
-        expect(row0).toBeTruthy();
+    expect(row0).toBeTruthy();
 
-        const row1 = inactiveGrid.query(By.css('[role="row"][row-index="1"]'));
+    const row1 = inactiveGrid.query(By.css('[role="row"][row-index="1"]'));
 
-        expect(row1).toBeTruthy();
+    expect(row1).toBeTruthy();
 
-        const row2 = inactiveGrid.query(By.css('[role="row"][row-index="2"]'));
+    const row2 = inactiveGrid.query(By.css('[role="row"][row-index="2"]'));
 
-        expect(row2).toBeFalsy();
-
-        done();
-      }
-    });
+    expect(row2).toBeFalsy();
   });
 
-  it('should not display inactive operator table if none inactive', async (done) => {
+  it('should not display inactive operator table if none inactive', async () => {
     const data: OperatorLiveStatusFragment[] = activeOperators;
 
     const ops = cold('--a', {
@@ -126,18 +114,12 @@ describe('FeedMonitoringComponent', () => {
     getTestScheduler().flush();
     fixture.detectChanges();
 
-    component.activeGridReady.subscribe((ready) => {
-      if (ready) {
-        const inactiveGrid = fixture.debugElement.query(By.css('.feed-monitoring__inactive-grid'));
+    const inactiveGrid = fixture.debugElement.query(By.css('.feed-monitoring__inactive-grid'));
 
-        expect(inactiveGrid).toBeFalsy();
-
-        done();
-      }
-    });
+    expect(inactiveGrid).toBeFalsy();
   });
 
-  it('should display active operator table', async (done) => {
+  it('should display active operator table', async () => {
     const data: OperatorLiveStatusFragment[] = activeOperators;
 
     const ops = cold('--a', {
@@ -149,24 +131,18 @@ describe('FeedMonitoringComponent', () => {
     getTestScheduler().flush();
     fixture.detectChanges();
 
-    component.activeGridReady.subscribe((ready) => {
-      if (ready) {
-        const inactiveGrid = fixture.debugElement.query(By.css('.feed-monitoring__active-grid'));
+    const inactiveGrid = fixture.debugElement.query(By.css('.feed-monitoring__active-grid'));
 
-        expect(inactiveGrid).toBeTruthy();
+    expect(inactiveGrid).toBeTruthy();
 
-        const headers = inactiveGrid.queryAll(By.css('.ag-header-cell-text')).map((x) => x.nativeElement.innerHTML);
+    const headers = inactiveGrid.queryAll(By.css('.ag-header-cell-text')).map((x) => x.nativeElement.innerHTML);
 
-        expect(headers).toEqual(
-          jasmine.arrayContaining(['Operator', 'Feed availability', 'Update frequency', 'Last outage'])
-        );
-
-        done();
-      }
-    });
+    expect(headers).toEqual(
+      jasmine.arrayContaining(['Operator', 'Feed availability', 'Update frequency', 'Last outage'])
+    );
   });
 
-  it('should display data in active operator table', async (done) => {
+  it('should display data in active operator table', async () => {
     const data = activeOperators;
 
     const ops = cold('--a', {
@@ -178,26 +154,20 @@ describe('FeedMonitoringComponent', () => {
     getTestScheduler().flush();
     fixture.detectChanges();
 
-    component.activeGridReady.subscribe((ready) => {
-      if (ready) {
-        const activeGrid = fixture.debugElement.query(By.css('.feed-monitoring__active-grid'));
+    const activeGrid = fixture.debugElement.query(By.css('.feed-monitoring__active-grid'));
 
-        expect(activeGrid).toBeTruthy();
-        const row0 = activeGrid.query(By.css('[role="row"][row-index="0"]'));
+    expect(activeGrid).toBeTruthy();
+    const row0 = activeGrid.query(By.css('[role="row"][row-index="0"]'));
 
-        expect(row0).toBeTruthy();
+    expect(row0).toBeTruthy();
 
-        const row1 = activeGrid.query(By.css('[role="row"][row-index="1"]'));
+    const row1 = activeGrid.query(By.css('[role="row"][row-index="1"]'));
 
-        expect(row1).toBeTruthy();
+    expect(row1).toBeTruthy();
 
-        const row2 = activeGrid.query(By.css('[role="row"][row-index="2"]'));
+    const row2 = activeGrid.query(By.css('[role="row"][row-index="2"]'));
 
-        expect(row2).toBeTruthy();
-
-        done();
-      }
-    });
+    expect(row2).toBeTruthy();
   });
 
   it('should navigate to live status if only one operator', () => {

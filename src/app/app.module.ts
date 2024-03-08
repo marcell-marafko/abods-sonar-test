@@ -11,31 +11,26 @@ import { ConfigService } from './config/config.service';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AuthenticationModule } from './authentication/authentication.module';
-import { HomeComponent } from './home/home.component';
 import { PercentPipe, ViewportScroller } from '@angular/common';
-import { Router, Event, Scroll, NavigationEnd } from '@angular/router';
-import { debounceTime, filter, pairwise, skipWhile } from 'rxjs/operators';
+import { Event, Router, Scroll } from '@angular/router';
+import { filter, pairwise } from 'rxjs/operators';
 import { UserModule } from './user/user.module';
-import { HttpLinkModule } from 'apollo-angular-link-http';
 
 import { NotFoundComponent } from './not-found/not-found.component';
 import { NotAuthorisedComponent } from './not-authorised/not-authorised.component';
-import { AnalyticsService } from './analytics.service';
 import { MAPBOX_API_KEY, NgxMapboxGLModule } from 'ngx-mapbox-gl';
-import { AuthenticatedUserService } from './authentication/authenticated-user.service';
-
-function appLoadFactory(config: ConfigService) {
-  return () => config.loadConfig().toPromise();
-}
+import { GoogleTagManagerModule } from 'angular-google-tag-manager';
+import { PrivacyPolicyModule } from './privacy-policy/privacy-policy.module';
+import { CookiePolicyModule } from './cookie-policy/cookie-policy.module';
+import { CookieService } from 'ngx-cookie-service';
 
 @NgModule({
-  declarations: [AppComponent, HomeComponent, NotFoundComponent, NotAuthorisedComponent],
+  declarations: [AppComponent, NotFoundComponent, NotAuthorisedComponent],
   imports: [
     BrowserModule,
     SharedModule,
     LayoutModule,
     GraphQLModule,
-    HttpLinkModule,
     HttpClientModule,
     BrowserAnimationsModule,
     FormsModule,
@@ -44,11 +39,14 @@ function appLoadFactory(config: ConfigService) {
     UserModule,
     AppRoutingModule,
     NgxMapboxGLModule,
+    GoogleTagManagerModule,
+    PrivacyPolicyModule,
+    CookiePolicyModule,
   ],
   providers: [
     {
       provide: APP_INITIALIZER,
-      useFactory: appLoadFactory,
+      useFactory: (config: ConfigService) => async () => await config.loadConfig(),
       deps: [ConfigService],
       multi: true,
     },
@@ -57,38 +55,19 @@ function appLoadFactory(config: ConfigService) {
       useFactory: (config: ConfigService) => config.mapboxToken,
       deps: [ConfigService],
     },
+    {
+      provide: 'googleTagManagerId',
+      useFactory: (config: ConfigService) => config.analyticsId,
+      deps: [ConfigService],
+    },
     PercentPipe,
+    CookieService,
   ],
   bootstrap: [AppComponent],
 })
 export class AppModule {
-  constructor(
-    private router: Router,
-    private analytics: AnalyticsService,
-    private viewportScroller: ViewportScroller,
-    private userService: AuthenticatedUserService
-  ) {
-    this.handlePushPageViewOnNavigationEnd();
+  constructor(private router: Router, private viewportScroller: ViewportScroller) {
     this.handleScrollOnNavigation();
-
-    this.userService.authenticatedUser
-      .pipe(skipWhile((user) => !user))
-      .subscribe((user) => analytics.pushUserInfo(user));
-  }
-
-  private handlePushPageViewOnNavigationEnd(): void {
-    this.router.events
-      .pipe(
-        filter((e: Event): e is NavigationEnd => e instanceof NavigationEnd),
-        // Allow page rendering to go head so we get the right page title
-        // and see if the page itself needs to redirect, ala /on-time -> /on-time/OPCODE
-        debounceTime(100)
-      )
-      .subscribe((e: NavigationEnd) => {
-        // `urlAfterRedirects` will contain the final url, not the one the user came in on
-        // e.g. `/dashboard` rather than `/`.
-        this.analytics.pushPageView(e.urlAfterRedirects);
-      });
   }
 
   /**
@@ -98,11 +77,11 @@ export class AppModule {
    * the route parameters (i.e. selections stored in query params).
    *
    * Related to: https://github.com/angular/angular/issues/26744
+   * TODO why is this needed? this should be initialized elsewhere.
    */
   private handleScrollOnNavigation(): void {
     this.router.events
       .pipe(
-        // import { Event } from '@angular/router'
         filter((e: Event): e is Scroll => e instanceof Scroll),
         pairwise()
       )

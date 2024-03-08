@@ -1,23 +1,29 @@
 import { FormsModule } from '@angular/forms';
-import { Spectator, createComponentFactory, byLabel, byText } from '@ngneat/spectator';
+import { byLabel, byText, createComponentFactory, Spectator, SpyObject } from '@ngneat/spectator';
 import { LayoutModule } from 'src/app/layout/layout.module';
 import { SharedModule } from 'src/app/shared/shared.module';
 
 import { FiltersComponent } from './filters.component';
+import { AdminAreaService } from '../admin-area/admin-area.service';
+import { of } from 'rxjs';
 
 describe('FiltersComponent', () => {
   let spectator: Spectator<FiltersComponent>;
   let component: FiltersComponent;
+  let adminAreaService: SpyObject<AdminAreaService>;
+  const mockAdminAreas = [{ id: 'AA110', name: 'Derbyshire' }];
 
   const createComponent = createComponentFactory({
     component: FiltersComponent,
     imports: [LayoutModule, SharedModule, FormsModule],
+    mocks: [AdminAreaService],
     detectChanges: false,
   });
 
   beforeEach(() => {
     spectator = createComponent();
     component = spectator.component;
+    adminAreaService = spectator.inject(AdminAreaService);
 
     component.filters = {};
     spectator.detectChanges();
@@ -49,18 +55,19 @@ describe('FiltersComponent', () => {
       minDelay: -30,
       maxDelay: 60,
       excludeItoLineId: 'ABC',
+      adminAreaIds: ['AA110'],
     };
 
     spectator.click(byText('Reset to defaults'));
-    spectator.click(byText('Apply filter'));
+    spectator.click(byText('Apply'));
 
     expect(spy).toHaveBeenCalledWith({});
   });
 
-  it('it should not emit new filters if cancel clicked', () => {
+  it('it should not emit new filters if close clicked', () => {
     const spy = spyOn(component.filtersChange, 'emit');
     const closeSpy = spyOn(component.closeFilters, 'emit');
-    spectator.click(byText('Cancel'));
+    spectator.click(byText('Close'));
 
     expect(spy).not.toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalledWith();
@@ -83,7 +90,7 @@ describe('FiltersComponent', () => {
 
     expect(spy).not.toHaveBeenCalled();
 
-    spectator.click(byText('Apply filter'));
+    spectator.click(byText('Apply'));
 
     expect(spy).toHaveBeenCalledWith(
       jasmine.objectContaining({
@@ -103,7 +110,7 @@ describe('FiltersComponent', () => {
       })
     );
 
-    expect(closeSpy).toHaveBeenCalledWith();
+    expect(closeSpy).not.toHaveBeenCalled();
   });
 
   it('it should allow the delay filters to be set back to "no delay"', () => {
@@ -113,7 +120,7 @@ describe('FiltersComponent', () => {
     component.maxDelayStr = '30';
     spectator.detectChanges();
 
-    spectator.click(byText('Apply filter'));
+    spectator.click(byText('Apply'));
 
     component.minDelayStr = 'none';
     component.maxDelayStr = 'none';
@@ -121,12 +128,40 @@ describe('FiltersComponent', () => {
 
     spy.calls.reset();
 
-    spectator.click(byText('Apply filter'));
+    spectator.click(byText('Apply'));
 
     expect(spy).toHaveBeenCalledWith(jasmine.objectContaining({}));
 
     // Want to be able to say was called with an object the didn't contain - this is the best I came up with,
     expect(spy.calls.mostRecent().args[0]?.minDelay).toBeUndefined();
     expect(spy.calls.mostRecent().args[0]?.maxDelay).toBeUndefined();
+  });
+
+  describe('setAdminAreaDropdown', () => {
+    it('should not call fetchAdminAreasForOperator if new operatorId is the same as operatorId', () => {
+      adminAreaService.fetchAdminAreasForOperator.and.returnValue(of(mockAdminAreas));
+      component.oldFilters = { operatorIds: ['AAA'] };
+      component.setAdminAreaDropdown({ operatorIds: ['AAA'] });
+
+      expect(adminAreaService.fetchAdminAreasForOperator).not.toHaveBeenCalledWith('AAA');
+    });
+
+    it('should call fetchAdminAreasForOperator with new operatorId if new operatorId is not the same as operatorId', () => {
+      adminAreaService.fetchAdminAreasForOperator.and.returnValue(of(mockAdminAreas));
+      component.oldFilters = { operatorIds: ['AAA'] };
+      component.setAdminAreaDropdown({ operatorIds: ['BBB'] });
+
+      expect(adminAreaService.fetchAdminAreasForOperator).toHaveBeenCalledWith('BBB');
+    });
+
+    it('should set label to name and value to id', () => {
+      adminAreaService.fetchAdminAreasForOperator.and.returnValue(of(mockAdminAreas));
+      component.oldFilters = { operatorIds: ['AAA'] };
+      component.setAdminAreaDropdown({ operatorIds: ['AA110'] });
+      component.adminAreas$.subscribe((data) => {
+        expect(data[0].label).toEqual(mockAdminAreas[0].name);
+        expect(data[0].value).toEqual(mockAdminAreas[0].id);
+      });
+    });
   });
 });

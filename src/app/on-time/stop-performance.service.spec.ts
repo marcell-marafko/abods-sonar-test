@@ -9,6 +9,7 @@ const stopPerf = (early: number, onTime: number, late: number, stopId = 'S00001'
   lineId: 'LN001',
   stopId,
   stopInfo: {
+    sourceId: '',
     stopName: 'Bus stop',
     stopId: stopId,
     stopLocation: { latitude: 56.7686, longitude: 0.4567 },
@@ -50,6 +51,7 @@ describe('StopPerformanceService', () => {
           { stopId: 'ST00003', stopName: 'C', lat: 52, lon: 0 },
           { stopId: 'ST09999', stopName: 'Unknown', lat: 54, lon: 0 },
         ],
+        serviceLinks: [],
       },
     ];
 
@@ -119,6 +121,7 @@ describe('StopPerformanceService', () => {
           { stopId: 'ST00002', stopName: 'B', lat: 51, lon: 0 },
           { stopId: 'ST00003', stopName: 'C', lat: 52, lon: 0 },
         ],
+        serviceLinks: [],
       },
     ];
 

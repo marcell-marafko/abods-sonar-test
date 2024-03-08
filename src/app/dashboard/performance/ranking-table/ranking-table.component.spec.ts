@@ -9,7 +9,7 @@ import { ChangeComponent } from 'src/app/shared/components/change/change.compone
 import { SharedModule } from 'src/app/shared/shared.module';
 import { LayoutModule } from 'src/app/layout/layout.module';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Period } from 'src/app/shared/services/date-range.service';
+import { Period } from 'src/app/shared/components/date-range/date-range.types';
 
 describe('PerformanceRankingComponent', () => {
   let spectator: Spectator<PerformanceRankingComponent>;
@@ -60,6 +60,7 @@ describe('PerformanceRankingComponent', () => {
       from: now.minus({ days: 28 }),
       trendFrom: now.minus({ days: 56 }),
       trendTo: now.minus({ days: 28 }),
+      preset: Period.Last28,
     };
   });
 

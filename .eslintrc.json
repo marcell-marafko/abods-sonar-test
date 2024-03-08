@@ -1,12 +1,12 @@
 {
   "root": true,
   "ignorePatterns": ["projects/**/*", "**/generated/graphql.ts"],
-  "plugins": ["prettier", "jasmine", "@angular-eslint", "@typescript-eslint", "unused-imports"],
+  "plugins": ["prettier", "jasmine", "@angular-eslint", "@typescript-eslint", "unused-imports", "json"],
   "overrides": [
     {
       "files": ["*.ts"],
       "parserOptions": {
-        "project": ["tsconfig.json"],
+        "project": ["**/tsconfig.json"],
         "createDefaultProgram": true
       },
       "env": {
@@ -19,7 +19,8 @@
         "plugin:@angular-eslint/recommended",
         "plugin:@angular-eslint/template/process-inline-templates",
         "plugin:prettier/recommended",
-        "plugin:jasmine/recommended"
+        "plugin:jasmine/recommended",
+        "plugin:json/recommended"
       ],
       "rules": {
         "@angular-eslint/directive-selector": [
@@ -40,7 +41,7 @@
         ],
         "@typescript-eslint/explicit-module-boundary-types": ["off"],
         "@typescript-eslint/no-explicit-any": ["off"],
-        "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
+        "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "ignoreRestSiblings": true }]
       }
     },
     {

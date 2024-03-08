@@ -1,9 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { FormErrors } from 'src/app/shared/gds/error-summary/error-summary.component';
 import { AuthenticationService } from '../authentication.service';
+
 @Component({
   selector: 'app-auth-login',
   templateUrl: './login.component.html',
@@ -13,9 +14,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   loading = true;
   submitted = false;
   returnUrl?: string;
-  authSubscription: Subscription;
-  formSubscription?: Subscription;
   errors: FormErrors[] = [];
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private formBuilder: FormBuilder,
@@ -23,10 +24,21 @@ export class LoginComponent implements OnInit, OnDestroy {
     private router: Router,
     private authenticationService: AuthenticationService
   ) {
-    this.authSubscription = this.authenticationService.isAuthenticated.subscribe((res) => {
-      if (res) {
+    this.loginForm = this.formBuilder.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required],
+    });
+  }
+
+  ngOnInit() {
+    this.loginForm.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.resetForm();
+    });
+    this.returnUrl = this.route.snapshot.queryParams.returnUrl;
+    this.authenticationService.isAuthenticated$.pipe(takeUntil(this.destroy$)).subscribe((isAuth) => {
+      if (isAuth) {
         this.loading = false;
-        this.router.navigate([this.returnUrl ?? '/']);
+        this.router.navigateByUrl(this.returnUrl ?? '/');
       } else {
         if (this.submitted) {
           this.errors.push({
@@ -36,27 +48,11 @@ export class LoginComponent implements OnInit, OnDestroy {
         }
       }
     });
-    this.loginForm = this.formBuilder.group({
-      username: ['', Validators.required],
-      password: ['', Validators.required],
-    });
-  }
-
-  ngOnInit() {
-    this.formSubscription = this.loginForm.valueChanges.subscribe(() => {
-      this.resetForm();
-    });
-    // get return url from route parameters or default to '/'
-    this.returnUrl = this.route.snapshot.queryParams.returnUrl || '/';
   }
 
   ngOnDestroy() {
-    if (this.authSubscription) {
-      this.authSubscription.unsubscribe();
-    }
-    if (this.formSubscription) {
-      this.formSubscription.unsubscribe();
-    }
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private resetForm() {
@@ -98,5 +94,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (prop && this.hasError(prop)) {
       return this.getErrorString(prop);
     }
+  }
+
+  onEmailBlur() {
+    this.router.navigate(['./'], { skipLocationChange: true });
   }
 }

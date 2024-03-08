@@ -30,6 +30,14 @@
         <span class="govuk-header__product-name">{{ service }}</span>
       </a>
     </div>
+    <button
+      *ngIf="hasSession()"
+      class="govuk-header__link unbuttoned govuk__link header__help-link"
+      (click)="openHelpdesk()"
+    >
+      <svg-icon class="header__help-icon" src="assets/icons/question-in-circle.svg" [applyClass]="true"></svg-icon>
+      Help
+    </button>
     <app-nav-toggle appearance="light" *ngIf="hasSession()"></app-nav-toggle>
   </div>
 </header>

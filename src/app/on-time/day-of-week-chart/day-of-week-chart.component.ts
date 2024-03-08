@@ -24,7 +24,7 @@ export class DayOfWeekChartComponent implements OnInit, OnDestroy {
 
   data$!: Observable<DayOfWeekData[] | null>;
   status$ = new Subject<AsyncStatus>();
-  destroy$ = new Subject();
+  destroy$ = new Subject<void>();
 
   constructor(private service: OnTimeService) {}
 

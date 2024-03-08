@@ -16,9 +16,8 @@ export class NavService {
     document.body.classList.remove('js-nav-open');
   }
 
-  navClickOutside(e: Event) {
+  navClickOutside(selectedEl: HTMLElement) {
     if (this.isOpen) {
-      const selectedEl = e.target as HTMLElement;
       if (selectedEl.id !== 'nav-toggle') {
         this.toggleMenu();
       }

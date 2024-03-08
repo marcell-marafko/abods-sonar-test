@@ -51,17 +51,12 @@ export class HistoricVehicleStatsComponent extends BaseChart implements OnChange
     if (changes.alertsDataSource && changes.alertsDataSource.currentValue && this.timelineSeries) {
       this.setTimelineData(changes.alertsDataSource.currentValue);
     }
-    if (changes.date) {
-      this.showLoadingScreen();
-    }
   }
 
   private setData(withData: VehicleStatsType[]) {
     if (!this.chart) {
       return;
     }
-
-    this.showLoadingScreen();
 
     const protoViewData = withData.map((stat) => {
       const dateTime = DateTime.fromISO(stat.timestamp, { zone: 'utc' });
@@ -73,8 +68,8 @@ export class HistoricVehicleStatsComponent extends BaseChart implements OnChange
       };
     });
 
-    const minDateTime = this.date?.toUTC().startOf('day') ?? protoViewData[0].dateTime;
-    const maxDateTime = this.date?.toUTC().endOf('day') ?? protoViewData[protoViewData.length - 1].dateTime;
+    const minDateTime = this.date?.startOf('day').toUTC() ?? protoViewData[0].dateTime;
+    const maxDateTime = this.date?.endOf('day').toUTC() ?? protoViewData[protoViewData.length - 1].dateTime;
 
     this.chartInterval = Interval.fromDateTimes(minDateTime, maxDateTime);
 

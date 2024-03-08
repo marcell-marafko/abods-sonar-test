@@ -8,9 +8,10 @@ import { EditUserComponent } from './edit-user/edit-user.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AlertsComponent } from './alerts/alerts.component';
 import { EditAlertComponent } from './alerts/edit-alert/edit-alert.component';
+import { UserNotFoundComponent } from './user-not-found/user-not-found.component';
 
 @NgModule({
-  declarations: [UsersComponent, EditUserComponent, AlertsComponent, EditAlertComponent],
+  declarations: [UsersComponent, EditUserComponent, AlertsComponent, EditAlertComponent, UserNotFoundComponent],
   imports: [CommonModule, LayoutModule, SharedModule, OrganisationRoutingModule, FormsModule, ReactiveFormsModule],
 })
 export class OrganisationModule {}

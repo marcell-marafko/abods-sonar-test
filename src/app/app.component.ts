@@ -1,15 +1,19 @@
-import { Component, AfterViewInit } from '@angular/core';
+import { AfterViewInit, Component, OnInit } from '@angular/core';
 import { AuthenticationService } from './authentication/authentication.service';
 import { BrowserTitleService } from './shared/components/browser-title/browser-title.service';
-import { Router, NavigationEnd, Event } from '@angular/router';
+import { Event, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { PanelService } from './shared/components/panel/panel.service';
+import { Observable } from 'rxjs';
+import { VersionService } from './version/version.service';
+import { AnalyticsService } from './shared/services/analytics.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent implements AfterViewInit {
+export class AppComponent implements OnInit, AfterViewInit {
   skipLinkContent?: string;
   skipLinkNav?: string;
   title = 'raa-client';
@@ -18,8 +22,16 @@ export class AppComponent implements AfterViewInit {
   constructor(
     private browserTitleService: BrowserTitleService,
     private router: Router,
-    private authService: AuthenticationService
+    private authService: AuthenticationService,
+    private panelService: PanelService,
+    private versionService: VersionService,
+    private analyticsService: AnalyticsService
   ) {}
+
+  ngOnInit(): void {
+    this.versionService.printVersion();
+    this.analyticsService.initialize();
+  }
 
   ngAfterViewInit() {
     this.browserTitleService.applicationTitle = this.service;
@@ -32,5 +44,9 @@ export class AppComponent implements AfterViewInit {
 
   get showNav() {
     return this.authService.isSessionAlive;
+  }
+
+  get showPanel(): Observable<boolean> {
+    return this.panelService.isOpen$;
   }
 }

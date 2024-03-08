@@ -1,13 +1,13 @@
 <div [ngClass]="cellClasses" tabindex="-1">
   <svg-icon
-    *ngIf="status == 'active'"
+    *ngIf="status === 'active'"
     class="active-cell__icon"
     [applyClass]="true"
     src="/assets/icons/check-in-circle-solid.svg"
     aria-hidden="true"
   ></svg-icon>
   <svg-icon
-    *ngIf="status == 'inactive'"
+    *ngIf="status === 'inactive'"
     class="active-cell__icon"
     [applyClass]="true"
     src="/assets/icons/cross-in-circle-solid.svg"

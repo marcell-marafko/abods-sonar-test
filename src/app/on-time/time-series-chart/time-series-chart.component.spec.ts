@@ -52,12 +52,12 @@ describe('TimeSeriesChartComponent', () => {
   });
 
   it('should request hour granularity data if time period short enough', () => {
-    const from = DateTime.fromISO('2021-01-01T00:00:00Z');
-    const to = DateTime.fromISO('2021-01-06T00:00:00Z');
+    const from = DateTime.fromISO('2021-01-01T00:00:00+00:00');
+    const to = DateTime.fromISO('2021-01-06T00:00:00+00:00');
 
     component.params = {
-      fromTimestamp: from.toJSDate(),
-      toTimestamp: to.toJSDate(),
+      fromTimestamp: from,
+      toTimestamp: to,
       filters: {},
     };
 
@@ -67,8 +67,8 @@ describe('TimeSeriesChartComponent', () => {
 
     expect(spy).toHaveBeenCalledWith(
       jasmine.objectContaining({
-        fromTimestamp: from.toJSDate(),
-        toTimestamp: to.toJSDate(),
+        fromTimestamp: from,
+        toTimestamp: to,
         filters: { granularity: Granularity.Hour },
       })
     );

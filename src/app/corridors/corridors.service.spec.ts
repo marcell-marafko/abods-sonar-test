@@ -1,4 +1,4 @@
-import { createServiceFactory } from '@ngneat/spectator';
+import { createServiceFactory, SpyObject } from '@ngneat/spectator';
 import { SpectatorService } from '@ngneat/spectator/lib/spectator-service/spectator-service';
 import { ApolloTestingController, ApolloTestingModule } from 'apollo-angular/testing';
 import {
@@ -12,10 +12,20 @@ import {
   DeleteCorridorDocument,
   GetCorridorDocument,
   ICorridorJourneyTimeStats,
+  ServiceLinkType,
+  UpdateCorridorDocument,
 } from '../../generated/graphql';
-import { CorridorsService, CorridorStatsViewParams, Stop } from './corridors.service';
-import { DateTime } from 'luxon';
+import {
+  CorridorsService,
+  CorridorStatsViewParams,
+  filterServiceLinksByStopsOrReturnServiceLinks,
+  Stop,
+} from './corridors.service';
+import { DateTime, Settings } from 'luxon';
+import { fakeAsync, flush } from '@angular/core/testing';
 import objectContaining = jasmine.objectContaining;
+import { OperatorService } from '../shared/services/operator.service';
+import { of } from 'rxjs';
 
 const journeyTime: ICorridorJourneyTimeStats = {
   avgTransitTime: 5,
@@ -29,8 +39,8 @@ const journeyTime: ICorridorJourneyTimeStats = {
 
 const params: CorridorStatsViewParams = {
   corridorId: '150',
-  from: DateTime.fromISO('2021-10-22', { zone: 'utc' }),
-  to: DateTime.fromISO('2021-11-21', { zone: 'utc' }),
+  from: DateTime.fromISO('2023-03-03', { zone: 'Europe/London' }),
+  to: DateTime.fromISO('2023-03-30', { zone: 'Europe/London' }),
   granularity: CorridorGranularity.Day,
   stops: [{ stopId: 'ST0001', stopName: 'A' } as Stop, { stopId: 'ST0002', stopName: 'B' } as Stop],
 };
@@ -42,7 +52,7 @@ const stats: CorridorStatsType = {
     totalTransits: 95,
     numberOfServices: 5,
   },
-  journeyTimeStats: [{ ts: DateTime.fromISO('2021-11-01').toMillis(), ...journeyTime }],
+  journeyTimeStats: [{ ts: DateTime.fromISO('2023-03-03').toISO({ suppressMilliseconds: true }), ...journeyTime }],
   journeyTimeTimeOfDayStats: [{ hour: 9, ...journeyTime }],
   journeyTimeDayOfWeekStats: [{ dow: 1, ...journeyTime }],
   journeyTimeHistogram: [
@@ -60,48 +70,149 @@ const stats: CorridorStatsType = {
       noc: 'OP01',
       operatorName: 'Stagecoach East Midlands',
       totalJourneyTime: 810,
-      totalScheduledJourneyTime: 900,
       scheduledTransits: 10,
       recordedTransits: 9,
       servicePatternName: '',
     },
   ],
+  serviceLinks: [],
 };
+
+const serviceLinks = [
+  {
+    fromStop: 'ST0100BRP90312',
+    toStop: 'ST0100BRA10796',
+    distance: 100,
+    routeValidity: '',
+  },
+  {
+    fromStop: 'ST0100BRA10796',
+    toStop: 'ST0100BRA10807',
+    distance: 200,
+    routeValidity: '',
+  },
+  {
+    fromStop: 'ST0100BRA10807',
+    toStop: 'ST0100BRP90340',
+    distance: 300,
+    routeValidity: '',
+  },
+  {
+    fromStop: 'ST0100BRP90340',
+    toStop: 'ST0100BRP90345',
+    distance: 400,
+    routeValidity: '',
+  },
+  {
+    fromStop: 'ST0100BRP90345',
+    toStop: 'ST0100BRP90003',
+    distance: 500,
+    routeValidity: '',
+  },
+];
+
+const paramStopsFound = [
+  {
+    stopId: 'ST0100BRP90312',
+    stopName: '',
+    lat: 0,
+    lon: 1,
+    naptan: '',
+    intId: 0,
+  },
+  {
+    stopId: 'ST0100BRA10796',
+    stopName: '',
+    lat: 0,
+    lon: 1,
+    naptan: '',
+    intId: 0,
+  },
+];
+const paramStopsNotFound = [
+  {
+    stopId: 'ST0100',
+    stopName: '',
+    lat: 0,
+    lon: 1,
+    naptan: '',
+    intId: 0,
+  },
+  {
+    stopId: 'ST0200',
+    stopName: '',
+    lat: 0,
+    lon: 1,
+    naptan: '',
+    intId: 0,
+  },
+];
 
 describe('CorridorsService', () => {
   let spectator: SpectatorService<CorridorsService>;
   let controller: ApolloTestingController;
+  let opService: SpyObject<OperatorService>;
   const serviceFactory = createServiceFactory({
     service: CorridorsService,
     imports: [ApolloTestingModule],
+    mocks: [OperatorService],
   });
 
   beforeEach(() => {
+    Settings.defaultZone = 'Europe/London';
+    Settings.now = () => 1664578800; // 2022-10-01 GMT+01:00, i.e. during BST
+
     spectator = serviceFactory();
     controller = spectator.inject(ApolloTestingController);
+    opService = spectator.inject(OperatorService);
   });
 
   it('should query stops', () => {
+    opService.fetchAdminAreaIds.and.returnValue(of(['001', '002']));
+
     spectator.service.queryStops('station').subscribe((actual) => {
       expect(actual).not.toBeNull();
-      expect(actual.length).toEqual(1);
-      expect(actual[0].stopId).toEqual('ST012345');
-      expect(actual[0].stopName).toEqual('Station Road');
+      expect(actual.orgStops.length).toEqual(2);
+      expect(actual.orgStops[0].stopId).toEqual('ST00001');
+      expect(actual.orgStops[0].stopName).toEqual('Station Road');
+      expect(actual.orgStops[1].stopId).toEqual('ST00002');
+      expect(actual.orgStops[1].stopName).toEqual('Bus Station');
+      expect(actual.nonOrgStops.length).toEqual(1);
+      expect(actual.nonOrgStops[0].stopId).toEqual('ST00003');
+      expect(actual.nonOrgStops[0].stopName).toEqual('Temple Way');
     });
 
     const op = controller.expectOne(CorridorsStopSearchDocument);
 
-    expect(op.operation.variables.query).toEqual('station');
+    expect(op.operation.variables.inputs).toEqual({
+      searchString: 'station',
+      boundingBox: undefined,
+    });
 
     op.flush({
       data: {
         corridor: {
           addFirstStop: [
             {
-              stopId: 'ST012345',
+              stopId: 'ST00001',
               stopName: 'Station Road',
               lat: 50,
               lon: 0,
+              adminAreaId: '001',
+            },
+            {
+              stopId: 'ST00002',
+              stopName: 'Bus Station',
+              lat: 50,
+              lon: 0,
+              adminAreaId: '002',
+            },
+            {
+              stopId: 'ST00003',
+              stopName: 'Temple Way',
+              lat: 50,
+              lon: 0,
+              adminAreaId: '003',
             },
           ],
         },
@@ -111,14 +222,13 @@ describe('CorridorsService', () => {
     controller.verify();
   });
 
-  it('should fetch subsequent stops', () => {
+  it('should fetch subsequent stops', fakeAsync(() => {
     spectator.service.fetchSubsequentStops(['ST012345']).subscribe((actual) => {
       expect(actual).not.toBeNull();
       expect(actual.length).toEqual(1);
       expect(actual[0].stopId).toEqual('ST023456');
       expect(actual[0].stopName).toEqual('High Street');
     });
-
     const op = controller.expectOne(CorridorsSubsequentStopsDocument);
 
     expect(op.operation.variables.stopList).toEqual(['ST012345']);
@@ -139,7 +249,8 @@ describe('CorridorsService', () => {
     });
 
     controller.verify();
-  });
+    flush();
+  }));
 
   it('should save corridors', () => {
     spectator.service.createCorridor('my new corridor', ['ST012345']).subscribe();
@@ -154,7 +265,7 @@ describe('CorridorsService', () => {
     controller.verify();
   });
 
-  it('should fetch corridors', () => {
+  it('should fetch corridors', fakeAsync(() => {
     spectator.service.fetchCorridors().subscribe((actual) => {
       expect(actual).not.toBeNull();
       expect(actual.length).toEqual(1);
@@ -180,9 +291,10 @@ describe('CorridorsService', () => {
     });
 
     controller.verify();
-  });
+    flush();
+  }));
 
-  it('should fetch corridors by id', () => {
+  it('should fetch corridors by id', fakeAsync(() => {
     spectator.service.fetchCorridorById(150).subscribe((actual) => {
       expect(actual).not.toBeNull();
       expect(actual.id).toEqual(150);
@@ -214,7 +326,8 @@ describe('CorridorsService', () => {
     });
 
     controller.verify();
-  });
+    flush();
+  }));
 
   it('should fetch corridor stats', () => {
     spectator.service.fetchStats(params).subscribe((actual) => {
@@ -226,8 +339,8 @@ describe('CorridorsService', () => {
     expect(op.operation.variables.params).toEqual(
       objectContaining({
         corridorId: '150',
-        fromTimestamp: '2021-10-22T00:00:00.000Z',
-        toTimestamp: '2021-11-21T00:00:00.000Z',
+        fromTimestamp: '2023-03-03T00:00:00.000+00:00',
+        toTimestamp: '2023-03-30T00:00:00.000+01:00',
         granularity: CorridorGranularity.Day,
         stopList: ['ST0001', 'ST0002'],
       })
@@ -241,7 +354,9 @@ describe('CorridorsService', () => {
   it('should convert corridor stats', () => {
     const actual = spectator.service.convertStats(stats, params);
 
-    expect(actual.journeyTimeStats.length).toEqual(31);
+    expect(actual.journeyTimeStats[0].ts).toEqual('2023-03-03T00:00:00+00:00');
+    expect(actual.journeyTimeStats[actual.journeyTimeStats.length - 1].ts).toEqual('2023-03-30T00:00:00+01:00');
+    expect(actual.journeyTimeStats.length).toEqual(28);
     expect(actual.journeyTimeTimeOfDayStats.length).toEqual(25);
     expect(actual.journeyTimeDayOfWeekStats.length).toEqual(7);
     expect(actual.journeyTimeHistogram.length).toEqual(5);
@@ -265,6 +380,57 @@ describe('CorridorsService', () => {
     controller.expectOne((operation) => {
       expect(operation.query.definitions).toEqual(DeleteCorridorDocument.definitions);
       expect(operation.variables.corridorId).toEqual(1234);
+      return true;
+    });
+
+    controller.verify();
+  });
+
+  describe('filterServiceLinksByStopsOrReturnServiceLinks', () => {
+    it('should return a single service link section where fromStop and toStop matches', () => {
+      params.stops = paramStopsFound;
+      const result = filterServiceLinksByStopsOrReturnServiceLinks(serviceLinks as ServiceLinkType[], params.stops);
+
+      expect(result[0].distance).toEqual(100);
+      expect(result[0].fromStop).toEqual(params.stops[0].stopId);
+      expect(result[0].toStop).toEqual(params.stops[1].stopId);
+    });
+
+    it('should return all service links if params undefined', () => {
+      const result = filterServiceLinksByStopsOrReturnServiceLinks(serviceLinks as ServiceLinkType[], undefined);
+
+      expect(result.length).toEqual(serviceLinks.length);
+    });
+
+    it('should return all service links if params stop list empty', () => {
+      params.stops = [];
+      const result = filterServiceLinksByStopsOrReturnServiceLinks(serviceLinks as ServiceLinkType[], params.stops);
+
+      expect(result.length).toEqual(serviceLinks.length);
+    });
+
+    it('should return all service links if no match params stop list empty', () => {
+      params.stops = paramStopsNotFound;
+      const result = filterServiceLinksByStopsOrReturnServiceLinks(serviceLinks as ServiceLinkType[], params.stops);
+
+      expect(result.length).toEqual(serviceLinks.length);
+    });
+
+    afterAll(() => {
+      params.stops = [{ stopId: 'ST0001', stopName: 'A' } as Stop, { stopId: 'ST0002', stopName: 'B' } as Stop];
+    });
+  });
+
+  it('should update corridor', () => {
+    spectator.service
+      .updateCorridor({ name: 'my updated corridor', id: 123, stopList: ['ST012345', 'ST67890'] })
+      .subscribe();
+
+    controller.expectOne((operation) => {
+      expect(operation.query.definitions).toEqual(UpdateCorridorDocument.definitions);
+      expect(operation.variables.inputs.name).toEqual('my updated corridor');
+      expect(operation.variables.inputs.id).toEqual(123);
+      expect(operation.variables.inputs.stopList).toEqual(['ST012345', 'ST67890']);
       return true;
     });
 

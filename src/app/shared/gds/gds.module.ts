@@ -16,6 +16,12 @@ import { RadioConditionalComponent } from './radios/radio-conditional/radio-cond
 import { CheckboxesComponent } from './checkboxes/checkboxes.component';
 import { CheckboxesItemComponent } from './checkboxes/checkboxes-item/checkboxes-item.component';
 import { ButtonDirective } from './button/button.directive';
+import { MultiselectCheckboxComponent } from './multiselect-checkbox/multiselect-checkbox.component';
+import { NgSelectModule } from '@ng-select/ng-select';
+import { AngularSvgIconModule } from 'angular-svg-icon';
+import { PasswordInputComponent } from './password-input/password-input.component';
+import { AccordionComponent } from './accordion/accordion.component';
+import { AccordionSectionComponent } from './accordion/accordion-section/accordion-section.component';
 
 @NgModule({
   declarations: [
@@ -33,8 +39,19 @@ import { ButtonDirective } from './button/button.directive';
     NotificationBannerComponent,
     CheckboxesComponent,
     CheckboxesItemComponent,
+    MultiselectCheckboxComponent,
+    PasswordInputComponent,
+    AccordionComponent,
+    AccordionSectionComponent,
   ],
-  imports: [RouterModule, FormsModule, CommonModule, ReactiveFormsModule],
+  imports: [
+    RouterModule,
+    FormsModule,
+    CommonModule,
+    ReactiveFormsModule,
+    NgSelectModule,
+    AngularSvgIconModule.forRoot(),
+  ],
   exports: [
     FieldsetComponent,
     TextInputComponent,
@@ -50,6 +67,11 @@ import { ButtonDirective } from './button/button.directive';
     NotificationBannerComponent,
     CheckboxesComponent,
     CheckboxesItemComponent,
+    MultiselectCheckboxComponent,
+    AngularSvgIconModule,
+    PasswordInputComponent,
+    AccordionComponent,
+    AccordionSectionComponent,
   ],
 })
 export class GdsModule {}

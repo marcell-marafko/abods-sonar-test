@@ -18,7 +18,7 @@ import { ModalComponent } from './components/modal/modal.component';
 import { StackComponent } from './components/stack/stack.component';
 import { OperatorSelectorComponent } from './components/operator-selector/operator-selector.component';
 import { NgSelectModule } from '@ng-select/ng-select';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { StatusComponent } from './components/status/status.component';
 import { LinkComponent } from './components/link/link.component';
 import { TabsComponent } from './components/tabs/tabs.component';
@@ -29,7 +29,6 @@ import { DateRangeComponent } from './components/date-range/date-range.component
 import { SegmentedToggleComponent } from './components/segmented-toggle/segmented-toggle.component';
 import { SegmentedToggleItemComponent } from './components/segmented-toggle/segmented-toggle-item/segmented-toggle-item.component';
 import { PanelComponent } from './components/panel/panel.component';
-import { ClickOutsideModule } from 'ng-click-outside';
 import { TimeRangeSliderComponent } from './components/time-range-slider/time-range-slider.component';
 import { NouisliderModule } from 'ng2-nouislider';
 import { RangeSliderComponent } from './components/range-slider/range-slider.component';
@@ -47,7 +46,30 @@ import { SelectableTextCellRendererComponent } from './components/ag-grid/select
 import { AgGridDirective } from './components/ag-grid/ag-grid.directive';
 import { IconCellRendererComponent } from './components/ag-grid/icon-cell/icon-cell-renderer.component';
 import { IconHeaderComponent } from './components/ag-grid/icon-header/icon-header.component';
-
+import { DynamicPanelComponentHostDirective } from './components/panel/dynamic-panel-component-host.directive';
+import { WindowVirtualScrollDirective } from './scrolling/window-virtual-scroll.directive';
+import { AutoResizeMapDirective } from './directives/auto-resize-map.directive';
+import { ChipComponent } from './components/chip/chip.component';
+import { EmptyCellComponent } from './components/ag-grid/empty-cell/empty-cell.component';
+import { DistancePipe } from './pipes/distance.pipe';
+import { LowercaseFormControlDirective } from './directives/form-control/lowercase-form-control.directive';
+import { UppercaseFormControlDirective } from './directives/form-control/uppercase-form-control.directive';
+import { DateComponent } from './components/date/date.component';
+import { OtpLegendComponent } from './components/otp-legend/otp-legend.component';
+import { FormatDurationPipe } from './pipes/format-duration.pipe';
+import { GeoContextPipe } from './mapbox/geo-context.pipe';
+import { JoinPipe } from './pipes/join.pipe';
+import { MapRecentreButtonComponent } from './components/map-recentre-button/map-recentre-button.component';
+import { MapViewToggleComponent } from './components/map-view-toggle/map-view-toggle.component';
+import { DropdownComponent } from './components/dropdown/dropdown.component';
+import { InviteUserModalComponent } from './components/invite-user-modal/invite-user-modal.component';
+import { OtpParamRangeSliderComponent } from './components/otp-param-range-slider/otp-param-range-slider.component';
+import { MaxNumberFormControlDirective } from './directives/form-control/max-number-form-control.directive';
+import { MinNumberFormControlDirective } from './directives/form-control/min-number-form-control.directive';
+import { WholeNumberFormControlDirective } from './directives/form-control/whole-number-form-control.directive';
+import { HelpdeskPanelComponent } from './components/helpdesk-panel/helpdesk-panel.component';
+import { MouseupOutsideDirective } from './directives/mouseup-outside.directive';
+import { FreshdeskHtmlFormatterPipe } from './components/helpdesk-panel/freshdesk-html-formatter.pipe';
 @NgModule({
   declarations: [
     NoInfinityPipe,
@@ -72,6 +94,7 @@ import { IconHeaderComponent } from './components/ag-grid/icon-header/icon-heade
     ChangeComponent,
     DateRangeControlsComponent,
     DateRangeComponent,
+    DateComponent,
     PanelComponent,
     TimeRangeSliderComponent,
     RangeSliderComponent,
@@ -86,6 +109,29 @@ import { IconHeaderComponent } from './components/ag-grid/icon-header/icon-heade
     IconHeaderComponent,
     XYChartComponent,
     AgGridDirective,
+    DynamicPanelComponentHostDirective,
+    WindowVirtualScrollDirective,
+    AutoResizeMapDirective,
+    ChipComponent,
+    EmptyCellComponent,
+    DistancePipe,
+    LowercaseFormControlDirective,
+    UppercaseFormControlDirective,
+    OtpLegendComponent,
+    FormatDurationPipe,
+    GeoContextPipe,
+    JoinPipe,
+    MapRecentreButtonComponent,
+    MapViewToggleComponent,
+    DropdownComponent,
+    InviteUserModalComponent,
+    OtpParamRangeSliderComponent,
+    MaxNumberFormControlDirective,
+    MinNumberFormControlDirective,
+    WholeNumberFormControlDirective,
+    HelpdeskPanelComponent,
+    MouseupOutsideDirective,
+    FreshdeskHtmlFormatterPipe,
   ],
   providers: [PercentPipe],
   imports: [
@@ -98,15 +144,14 @@ import { IconHeaderComponent } from './components/ag-grid/icon-header/icon-heade
     GdsModule,
     NgxSmartModalModule.forChild(),
     NgSelectModule,
-    ClickOutsideModule,
     NouisliderModule,
     LuxonModule,
+    ReactiveFormsModule,
   ],
   exports: [
     PopoverComponent,
     TooltipComponent,
     AngularSvgIconModule,
-    ClickOutsideModule,
     // shared components
     ActionListModule,
     BoxComponent,
@@ -127,6 +172,7 @@ import { IconHeaderComponent } from './components/ag-grid/icon-header/icon-heade
     TabContentDirective,
     ChangeComponent,
     DateRangeComponent,
+    DateComponent,
     SegmentedToggleComponent,
     SegmentedToggleItemComponent,
     PanelComponent,
@@ -140,6 +186,26 @@ import { IconHeaderComponent } from './components/ag-grid/icon-header/icon-heade
     IconHeaderComponent,
     XYChartComponent,
     AgGridDirective,
+    WindowVirtualScrollDirective,
+    AutoResizeMapDirective,
+    ChipComponent,
+    DistancePipe,
+    LowercaseFormControlDirective,
+    UppercaseFormControlDirective,
+    OtpLegendComponent,
+    FormatDurationPipe,
+    GeoContextPipe,
+    JoinPipe,
+    MapRecentreButtonComponent,
+    MapViewToggleComponent,
+    DropdownComponent,
+    InviteUserModalComponent,
+    OtpParamRangeSliderComponent,
+    MaxNumberFormControlDirective,
+    MinNumberFormControlDirective,
+    WholeNumberFormControlDirective,
+    HelpdeskPanelComponent,
+    MouseupOutsideDirective,
   ],
 })
 export class SharedModule {}

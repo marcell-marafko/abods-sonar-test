@@ -27,7 +27,7 @@
                 <div class="govuk-grid-column-two-thirds-from-desktop">
                   <p class="govuk-body">
                     Enter your name and a password to secure your new account. Your username will be
-                    <span class="govuk-!-font-weight-bold">{{ invitation?.email }}</span
+                    <span class="govuk-!-font-weight-bold">{{ invitation.email }}</span
                     >.
                   </p>
                   <app-stack childMin="200px">
@@ -39,6 +39,7 @@
                       [error]="getError('firstName')"
                       [required]="true"
                       width="20"
+                      autocomplete="given-name"
                     ></gds-text-input>
                     <gds-text-input
                       inputId="signup-last-name"
@@ -48,9 +49,10 @@
                       [error]="getError('lastName')"
                       [required]="true"
                       width="20"
+                      autocomplete="family-name"
                     ></gds-text-input>
                   </app-stack>
-                  <gds-text-input
+                  <gds-password-input
                     inputId="signup-password"
                     formControlName="password"
                     type="password"
@@ -58,8 +60,9 @@
                     [error]="getError('password')"
                     width="20"
                     [required]="true"
-                  ></gds-text-input>
-                  <gds-text-input
+                    autocomplete="new-password"
+                  ></gds-password-input>
+                  <gds-password-input
                     inputId="signup-confirm-password"
                     formControlName="confirmPassword"
                     type="password"
@@ -67,8 +70,11 @@
                     [error]="getError('confirmPassword')"
                     width="20"
                     [required]="true"
-                  ></gds-text-input>
-                  <gds-button text="Save and continue" type="submit"></gds-button>
+                    autocomplete="new-password"
+                  ></gds-password-input>
+                  <div [style.max-width]="'41ex'">
+                    <gds-button text="Save and continue" type="submit"></gds-button>
+                  </div>
                 </div>
                 <div class="govuk-grid-column-one-third-from-desktop" id="password-policy">
                   <p class="govuk-body">Your password must:</p>

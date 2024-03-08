@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ApolloTestingModule } from 'apollo-angular/testing';
 import { SharedModule } from 'src/app/shared/shared.module';
 import { LayoutModule } from '../../layout.module';
 
@@ -11,7 +12,7 @@ describe('UserAccountComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SharedModule, LayoutModule, RouterTestingModule],
+      imports: [SharedModule, LayoutModule, RouterTestingModule, ApolloTestingModule],
       declarations: [UserAccountComponent],
     }).compileComponents();
   });

@@ -10,16 +10,20 @@ import { PerformanceComponent } from './performance.component';
 import * as faker from 'faker';
 import { cold, getTestScheduler } from 'jasmine-marbles';
 import { PerformanceRankingComponent } from './ranking-table/ranking-table.component';
-import { RankingOrder, ServicePunctualityType } from 'src/generated/graphql';
+import { PerformanceFiltersInputType, RankingOrder, ServicePunctualityType } from 'src/generated/graphql';
 import { fakeDashboardPunctualityStats, fakeDashboardServiceRanking } from 'src/test-support/faker';
 import { DateRangeService } from 'src/app/shared/services/date-range.service';
 import { dateTimeCloseEnoughToEqualityMatcher } from 'src/test-support/equality';
+import { Period } from 'src/app/shared/components/date-range/date-range.types';
+import { BehaviorSubject } from 'rxjs';
 
 describe('PerformanceComponent', () => {
   let spectator: Spectator<PerformanceComponent>;
   let component: PerformanceComponent;
   let service: DashboardService;
   let dateRange: DateRangeService;
+
+  const filters = <PerformanceFiltersInputType>{};
 
   const createComponent = createComponentFactory({
     component: PerformanceComponent,
@@ -37,6 +41,7 @@ describe('PerformanceComponent', () => {
     component = spectator.component;
     service = spectator.inject(DashboardService);
     dateRange = spectator.inject(DateRangeService);
+    component.filters = new BehaviorSubject(filters);
   });
 
   beforeEach(() => {
@@ -66,9 +71,8 @@ describe('PerformanceComponent', () => {
       to: endOfLastMonth,
       trendFrom: startOfMonthBefore,
       trendTo: endOfMonthBefore,
+      preset: Period.LastMonth,
     });
-
-    component.nocCode = null;
 
     spectator.detectChanges();
 
@@ -79,12 +83,12 @@ describe('PerformanceComponent', () => {
     getTestScheduler().flush();
     spectator.detectChanges();
 
-    expect(changePeriodFromTimeSpy).toHaveBeenCalledWith('lastMonth', DateTime.local());
+    expect(changePeriodFromTimeSpy).toHaveBeenCalledWith(Period.LastMonth, DateTime.local());
 
-    expect(getPunctualityStatsSpy).toHaveBeenCalledWith(null, startOfLastMonth, endOfLastMonth);
+    expect(getPunctualityStatsSpy).toHaveBeenCalledWith(filters, startOfLastMonth, endOfLastMonth);
 
     expect(getServiceRankingSpy).toHaveBeenCalledWith(
-      null,
+      filters,
       startOfLastMonth,
       endOfLastMonth,
       RankingOrder.Descending,
@@ -99,7 +103,8 @@ describe('PerformanceComponent', () => {
     );
     const getServiceRankingSpy = spyOn(service, 'getServiceRanking').and.returnValue(cold('-a', { a: [] }));
 
-    component.nocCode = 'OP01';
+    filters.nocCodes = ['OP01'];
+    component.filters = new BehaviorSubject(filters);
 
     const testNow = DateTime.fromISO('2021-03-30T10:01:00Z');
 
@@ -111,6 +116,7 @@ describe('PerformanceComponent', () => {
       to: testNow,
       trendFrom: fiftySixDaysBefore,
       trendTo: testNow,
+      preset: Period.Last7,
     });
 
     spectator.detectChanges();
@@ -118,12 +124,12 @@ describe('PerformanceComponent', () => {
     getTestScheduler().flush();
     spectator.detectChanges();
 
-    expect(changePeriodFromTimeSpy).toHaveBeenCalledWith('last28', DateTime.local());
+    expect(changePeriodFromTimeSpy).toHaveBeenCalledWith(Period.Last7, DateTime.local());
 
-    expect(getPunctualityStatsSpy).toHaveBeenCalledWith('OP01', twentyEightDaysBefore, testNow);
+    expect(getPunctualityStatsSpy).toHaveBeenCalledWith(filters, twentyEightDaysBefore, testNow);
 
     expect(getServiceRankingSpy).toHaveBeenCalledWith(
-      'OP01',
+      filters,
       twentyEightDaysBefore,
       testNow,
       RankingOrder.Descending,

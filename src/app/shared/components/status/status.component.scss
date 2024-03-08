@@ -1,3 +1,4 @@
+@use "sass:math";
 @import 'src/assets/styles/settings/settings';
 @import 'src/assets/styles/helpers/helpers.scss';
 
@@ -49,7 +50,7 @@
     }
     .status--large & {
       font-size: rem(32);
-      line-height: (35/32);
+      line-height: math.div(35, 32);
       margin-left: govuk-spacing(2);
     }
   }

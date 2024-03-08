@@ -6,8 +6,12 @@
 @import 'assets/styles/libs/libs.scss';
 
 // Core GDS classes
-@import '~govuk-frontend/govuk/all';
+@import 'govuk-frontend/govuk/all';
 
 // Mapbox-GL
-@import '~mapbox-gl/dist/mapbox-gl.css';
-//@import '~@mapbox/mapbox-gl-geocoder/lib/mapbox-gl-geocoder.css';
+@import 'mapbox-gl/dist/mapbox-gl.css';
+
+// Override min-width for select fields
+.govuk-select {
+  min-width: fit-content;
+}

@@ -4,11 +4,12 @@ import { createServiceFactory } from '@ngneat/spectator';
 import {
   HeadwayFrequentServiceInfoDocument,
   HeadwayFrequentServicesDocument,
-  HeadwayInputType,
   HeadwayOverviewDocument,
   HeadwayTimeSeriesDocument,
 } from '../../generated/graphql';
-import { HeadwayService } from './headway.service';
+import { HeadwayParams, HeadwayService } from './headway.service';
+import { PerformanceParams } from './on-time.service';
+import { waitForAsync } from '@angular/core/testing';
 import objectContaining = jasmine.objectContaining;
 
 describe('HeadwayService', () => {
@@ -25,11 +26,11 @@ describe('HeadwayService', () => {
   });
 
   it('should query headway performance', () => {
-    const params: HeadwayInputType = {
+    const params: HeadwayParams = {
       fromTimestamp: '2022-01-31T00:00:00',
       toTimestamp: '2022-02-04T23:59:59',
       filters: {
-        nocCodes: ['OP01'],
+        operatorIds: ['OP01'],
         lineIds: ['LN12345'],
       },
     };
@@ -48,7 +49,7 @@ describe('HeadwayService', () => {
     expect(op.operation.variables.params.toTimestamp).toEqual('2022-02-04T23:59:59');
     expect(op.operation.variables.params.filters).toEqual(
       objectContaining({
-        nocCodes: ['OP01'],
+        operatorIds: ['OP01'],
         lineIds: ['LN12345'],
       })
     );
@@ -72,11 +73,11 @@ describe('HeadwayService', () => {
   });
 
   it('should query headway overview stats', () => {
-    const params: HeadwayInputType = {
+    const params: HeadwayParams = {
       fromTimestamp: '2022-02-08T00:00:00',
       toTimestamp: '2022-03-07T23:59:59',
       filters: {
-        nocCodes: ['OP01'],
+        operatorIds: ['OP01'],
         lineIds: ['LN12345'],
       },
     };
@@ -93,7 +94,7 @@ describe('HeadwayService', () => {
     expect(op.operation.variables.params.toTimestamp).toEqual('2022-03-07T23:59:59');
     expect(op.operation.variables.params.filters).toEqual(
       objectContaining({
-        nocCodes: ['OP01'],
+        operatorIds: ['OP01'],
         lineIds: ['LN12345'],
       })
     );
@@ -118,7 +119,7 @@ describe('HeadwayService', () => {
       fromTimestamp: '2022-02-08T00:00:00',
       toTimestamp: '2022-03-07T23:59:59',
       filters: {
-        nocCodes: ['OP01'] as [string],
+        operatorIds: ['OP01'] as [string],
       },
     };
     spectator.service.fetchFrequentServices(params).subscribe((actual) => {
@@ -129,7 +130,7 @@ describe('HeadwayService', () => {
 
     const op = controller.expectOne(HeadwayFrequentServicesDocument);
 
-    expect(op.operation.variables.noc).toEqual('OP01');
+    expect(op.operation.variables.operatorId).toEqual('OP01');
     expect(op.operation.variables.fromTimestamp).toEqual('2022-02-08T00:00:00');
     expect(op.operation.variables.toTimestamp).toEqual('2022-03-07T23:59:59');
 
@@ -149,7 +150,7 @@ describe('HeadwayService', () => {
       fromTimestamp: '2022-02-08T00:00:00',
       toTimestamp: '2022-03-07T23:59:59',
       filters: {
-        nocCodes: ['OP01'] as [string],
+        operatorIds: ['OP01'] as [string],
         lineIds: ['LN12345'] as [string],
       },
     };
@@ -161,10 +162,10 @@ describe('HeadwayService', () => {
 
     const op = controller.expectOne(HeadwayFrequentServiceInfoDocument);
 
-    expect(op.operation.variables.noc).toEqual('OP01');
-    expect(op.operation.variables.lineId).toEqual('LN12345');
-    expect(op.operation.variables.fromTimestamp).toEqual('2022-02-08T00:00:00');
-    expect(op.operation.variables.toTimestamp).toEqual('2022-03-07T23:59:59');
+    expect(op.operation.variables.inputs.filters.operatorId).toEqual('OP01');
+    expect(op.operation.variables.inputs.filters.lineId).toEqual('LN12345');
+    expect(op.operation.variables.inputs.fromTimestamp).toEqual('2022-02-08T00:00:00');
+    expect(op.operation.variables.inputs.toTimestamp).toEqual('2022-03-07T23:59:59');
 
     op.flush({
       data: {
@@ -176,4 +177,39 @@ describe('HeadwayService', () => {
 
     controller.verify();
   });
+
+  // ABOD-487
+  it(
+    'should exclude unsupported properties',
+    waitForAsync(() => {
+      const params: PerformanceParams = {
+        fromTimestamp: '2022-01-31T00:00:00',
+        toTimestamp: '2022-02-04T23:59:59',
+        filters: {
+          operatorIds: ['OP01'],
+          lineIds: ['LN12345'],
+          timingPointsOnly: true,
+          adminAreaIds: ['AA100'],
+        },
+      };
+      spectator.service.fetchTimeSeries(params).subscribe((actual) => {
+        expect(actual).not.toBeNull();
+      });
+
+      const op = controller.expectOne(HeadwayTimeSeriesDocument);
+
+      expect(op.operation.variables.params.filters.timingPointsOnly).not.toBeDefined();
+      expect(op.operation.variables.params.filters.adminAreaIds).not.toBeDefined();
+
+      op.flush({
+        data: {
+          headwayMetrics: {
+            headwayTimeSeries: [],
+          },
+        },
+      });
+
+      controller.verify();
+    })
+  );
 });

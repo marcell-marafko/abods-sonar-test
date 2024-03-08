@@ -11,6 +11,13 @@ mgl-map {
 }
 
 .map {
+  &__loading {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate3d(-50%, -50%, 0);
+    z-index: 2;
+  }
   &__legend {
     @include govuk-font(14);
     background-color: #ffffff;
@@ -18,47 +25,26 @@ mgl-map {
     display: grid;
     align-items: center;
     justify-items: center;
+    grid-template-columns: repeat(8, auto);
+    grid-template-rows: auto;
+  }
 
-    &--otp {
-      grid-template-columns: repeat(5, auto);
-      grid-template-rows: repeat(2, auto);
-      grid-template-areas:
-        '. . . . .'
-        'early . ontime . late';
-    }
-
-    &--delay {
-      grid-template-columns: repeat(6, auto);
-      grid-template-rows: auto;
-    }
-  }
-  &__legend-item {
-    margin: 0 - (govuk-spacing(1));
-  }
-  &__legend-hint,
-  &__popup-hint {
-    color: #626a6e;
-  }
   &__dot {
     border-radius: 100%;
     margin: govuk-spacing(1);
-    &--1 {
-      @include square(16px);
+    @include square(16px);
+
+    &--high {
+      background-color: govuk-colour('turquoise');
     }
-    &--2 {
-      @include square(22px);
+    &--med {
+      background-color: govuk-colour('yellow');
     }
-    &--3 {
-      @include square(35px);
+    &--low {
+      background-color: govuk-colour('red');
     }
-    &--early {
-      background-color: raas-colour('early');
-    }
-    &--on-time {
-      background-color: raas-colour('on-time');
-    }
-    &--late {
-      background-color: raas-colour('late');
+    &--no-data {
+      background-color: govuk-colour('mid-grey');
     }
   }
 }

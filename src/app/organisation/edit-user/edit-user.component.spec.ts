@@ -11,6 +11,7 @@ import { EditUserComponent } from '../edit-user/edit-user.component';
 import { OrganisationModule } from '../organisation.module';
 import { OrganisationService } from '../organisation.service';
 import { UsersComponent } from '../users/users.component';
+import { HelpdeskResolver } from '../../shared/resolvers/helpdesk.resolver';
 
 const orgRoles = [
   {
@@ -88,6 +89,7 @@ describe('EditUserComponent', () => {
         },
       ]),
     ],
+    mocks: [HelpdeskResolver],
     stubsEnabled: false,
     detectChanges: false,
   });

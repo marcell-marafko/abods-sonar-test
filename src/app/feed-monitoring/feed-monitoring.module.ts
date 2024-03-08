@@ -41,7 +41,7 @@ import { LuxonModule } from 'luxon-angular';
     LayoutModule,
     NgxTippyModule,
     FeedMonitoringRoutingModule,
-    AgGridModule.withComponents([]),
+    AgGridModule,
     FormsModule,
     LuxonModule,
   ],

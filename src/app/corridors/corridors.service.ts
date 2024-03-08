@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import {
   CorridorGranularity,
-  CorridorHistogramType,
+  CorridorJourneyTimeStatsType,
   CorridorsListGQL,
   CorridorsStopSearchGQL,
   CorridorsSubsequentStopsGQL,
@@ -11,18 +11,21 @@ import {
   CorridorStatsTimeOfDayType,
   CorridorStatsType,
   CorridorType,
+  CorridorUpdateInputType,
   CreateCorridorGQL,
   DeleteCorridorGQL,
   GetCorridorGQL,
+  ICorridorJourneyTimeStats,
+  ServiceLinkType,
   StopInfoType,
   StopType,
+  UpdateCorridorGQL,
 } from '../../generated/graphql';
-import { map } from 'rxjs/operators';
-import { Definitely, nonNullishArray } from '../on-time/transit-model.service';
+import { map, switchMap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { assertNonNullish } from '../shared/rxjs-operators';
 import { FeatureCollection, Point } from 'geojson';
-import { featureCollection, point } from '@turf/turf';
+import { featureCollection, point } from '@turf/helpers';
 import { position } from '../shared/geo';
 import { DateTime, Duration, Interval } from 'luxon';
 import {
@@ -34,23 +37,27 @@ import {
   sortBy as _sortBy,
   values as _values,
 } from 'lodash-es';
+import { HistogramChartDataItem } from './view/histogram-chart/histogram-chart.component';
+import { BoxPlotChartDataItem } from './view/box-plot-chart/box-plot-chart.component';
+import { Definitely, nonNullishArray } from '../shared/array-operators';
+import { LngLatBounds } from 'mapbox-gl';
+import { OperatorService } from '../shared/services/operator.service';
 
-export type Stop = Pick<StopType, 'stopId' | 'stopName' | 'lon' | 'lat'> & { naptan: string; intId: number };
+export type Stop = Pick<StopType, 'stopId' | 'stopName' | 'lon' | 'lat' | 'localityName' | 'adminAreaId'> & {
+  naptan: string;
+  intId: number;
+};
 
 export type CorridorSummary = Definitely<Pick<CorridorType, 'id' | 'name'>> & { numStops: number };
 
 export type Corridor = Pick<CorridorType, 'id' | 'name'> & { stops: Stop[] };
 
-export type CorridorStats = Pick<
-  Definitely<CorridorStatsType>,
-  'summaryStats' | 'journeyTimeStats' | 'journeyTimePerServiceStats' | 'journeyTimeTimeOfDayStats'
-> & {
-  journeyTimeTimeOfDayStats: (CorridorStatsTimeOfDayType & {
-    category: string;
-    binLabel: string;
-  })[];
-  journeyTimeDayOfWeekStats: (CorridorStatsDayOfWeekType & { category: string; binLabel: string })[];
-  journeyTimeHistogram: CorridorHistogramType[];
+export type CorridorStats = Pick<Definitely<CorridorStatsType>, 'summaryStats' | 'journeyTimePerServiceStats'> & {
+  journeyTimeTimeOfDayStats: (CorridorStatsTimeOfDayType & BoxPlotChartDataItem)[];
+  journeyTimeDayOfWeekStats: (CorridorStatsDayOfWeekType & BoxPlotChartDataItem)[];
+  journeyTimeHistogram: HistogramChartDataItem[];
+  journeyTimeStats: (CorridorJourneyTimeStatsType & BoxPlotChartDataItem)[];
+  serviceLinks: ServiceLinkType[];
 };
 
 export type CorridorStatsParams = Pick<
@@ -87,13 +94,13 @@ export const asGeoJsonPoints: (stops: Stop[]) => FeatureCollection<Point, Stop> 
 
 function* timeSeriesRange(interval: Interval, granularity: CorridorGranularity) {
   let cursor = interval.start;
-  while (cursor < interval.end) {
+  while (cursor <= interval.end) {
     yield cursor;
     cursor = cursor.plus({ [granularity]: 1 });
   }
 }
 
-const fillGaps = <T, U, K extends keyof T>(
+export const fillGaps = <T, U, K extends keyof T>(
   key: K,
   data: T[],
   defaultRange: T[K][],
@@ -117,6 +124,37 @@ const formatDayOfWeekShort = (weekday: number) => DateTime.fromObject({ weekday 
 const formatDayOfWeek = (weekday: number) => DateTime.fromObject({ weekday }).toFormat('cccc');
 const isoDayOfWeek = (dow: number) => (dow === 0 ? 7 : dow);
 
+const addBoxPlotChartDataItems = (stat: ICorridorJourneyTimeStats & BoxPlotChartDataItem) => {
+  stat.yAxisMaxValue = stat.maxTransitTime;
+  stat.yAxisMinValue = stat.minTransitTime;
+  stat.yAxisMeanValue = stat.avgTransitTime;
+};
+
+export const filterServiceLinksByStopsOrReturnServiceLinks = (
+  serviceLinks: ServiceLinkType[] = [],
+  stops: Stop[] = []
+): ServiceLinkType[] => {
+  if (stops.length) {
+    const filtered = filterServiceLinksByStops(serviceLinks, stops);
+    return filtered.length === 0 ? serviceLinks : filtered;
+  }
+  return serviceLinks;
+};
+
+export const filterServiceLinksByStops = (
+  serviceLinks: ServiceLinkType[] = [],
+  stops: Stop[] = []
+): ServiceLinkType[] =>
+  serviceLinks.filter(
+    (links) =>
+      stops.find((stop) => stop.stopId === links.fromStop) && stops.find((stop) => stop.stopId === links.toStop)
+  );
+
+export interface StopLists {
+  orgStops: Stop[];
+  nonOrgStops: Stop[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class CorridorsService {
   constructor(
@@ -126,23 +164,52 @@ export class CorridorsService {
     private getCorridorGQL: GetCorridorGQL,
     private corridorStatsQuery: CorridorStatsGQL,
     private createCorridorMutation: CreateCorridorGQL,
-    private deleteCorridorMutation: DeleteCorridorGQL
+    private deleteCorridorMutation: DeleteCorridorGQL,
+    private operatorService: OperatorService,
+    private updateCorridorGQL: UpdateCorridorGQL
   ) {}
 
-  queryStops(query: string): Observable<Stop[]> {
-    return this.corridorsStopSearchQuery
-      .fetch({ query })
-      .pipe(map((result) => nonNullishArray(result?.data?.corridor.addFirstStop).map(toStop)));
+  queryStops(searchString?: string, bounds?: LngLatBounds): Observable<StopLists> {
+    return this.operatorService.fetchAdminAreaIds().pipe(
+      switchMap((adminAreaIds) => {
+        return this.corridorsStopSearchQuery
+          .fetch(
+            {
+              inputs: {
+                searchString,
+                boundingBox: bounds && {
+                  minLongitude: bounds.getWest(),
+                  minLatitude: bounds.getSouth(),
+                  maxLongitude: bounds.getEast(),
+                  maxLatitude: bounds.getNorth(),
+                },
+              },
+            },
+            { fetchPolicy: 'no-cache' }
+          )
+          .pipe(
+            map((result) => {
+              const allStops = nonNullishArray(result?.data?.corridor.addFirstStop).map(toStop);
+              const orgStops = allStops.filter((stop) => adminAreaIds.some((id) => id === stop.adminAreaId));
+              const nonOrgStops = allStops.filter((stop) => adminAreaIds.every((id) => id !== stop.adminAreaId));
+              return {
+                orgStops: orgStops,
+                nonOrgStops: nonOrgStops,
+              };
+            })
+          );
+      })
+    );
   }
 
   fetchSubsequentStops(stopList: string[]): Observable<Stop[]> {
     return this.corridorsSubsequentStopsQuery
-      .fetch({ stopList })
+      .fetch({ stopList }, { fetchPolicy: 'no-cache' })
       .pipe(map((result) => nonNullishArray(result?.data?.corridor.addSubsequentStops).map(toStop)));
   }
 
   fetchCorridors(): Observable<CorridorSummary[]> {
-    return this.corridorsListQuery.fetch().pipe(
+    return this.corridorsListQuery.fetch(undefined, { fetchPolicy: 'no-cache' }).pipe(
       map((result) =>
         nonNullishArray(result.data?.corridor.corridorList).map(({ stops, ...corridor }) => ({
           ...corridor,
@@ -153,7 +220,7 @@ export class CorridorsService {
   }
 
   fetchCorridorById(corridorId: number): Observable<Corridor> {
-    return this.getCorridorGQL.fetch({ corridorId }).pipe(
+    return this.getCorridorGQL.fetch({ corridorId }, { fetchPolicy: 'no-cache' }).pipe(
       map((result) => {
         if (result.errors && result.errors.length > 0) {
           throw result.errors[0].message;
@@ -171,8 +238,8 @@ export class CorridorsService {
       .fetch({
         params: {
           corridorId,
-          fromTimestamp: from.toUTC().toISO(),
-          toTimestamp: to.toUTC().toISO(),
+          fromTimestamp: from.toISO(),
+          toTimestamp: to.toISO(),
           granularity,
           stopList: stops.map((stop) => stop.stopId),
         },
@@ -180,7 +247,8 @@ export class CorridorsService {
       .pipe(
         map((result) => result.data?.corridor.stats),
         assertNonNullish(),
-        map((stats) => this.convertStats(stats, params))
+        map((stats) => this.convertStats(stats, params)),
+        map((stats) => this.addBoxPlotData(stats))
       );
   }
 
@@ -199,7 +267,7 @@ export class CorridorsService {
         timeSeries,
         Array.from(
           timeSeriesRange(Interval.fromDateTimes(params.from, params.to), params.granularity)
-        ).map((dateTime) => dateTime.toUTC().toISO({ includeOffset: false, suppressMilliseconds: true }))
+        ).map((dateTime) => dateTime.toISO({ suppressMilliseconds: true }).replace('Z', '+00:00'))
       ),
       journeyTimePerServiceStats: nonNullishArray(stats.journeyTimePerServiceStats),
       journeyTimeDayOfWeekStats: fillGaps(
@@ -213,16 +281,23 @@ export class CorridorsService {
         }),
         'isoDayOfWeek'
       ),
-      journeyTimeTimeOfDayStats: fillGaps('hour', timeOfDay, _range(0, 25), (hour) => ({
-        category: `${DateTime.fromObject({ hour }).toFormat('HH:mm')}`,
-        binLabel: `${DateTime.fromObject({ hour }).toFormat('HH:mm')} - ${DateTime.fromObject({
-          hour: hour + 1,
-        }).toFormat('HH:mm')}`,
-      })),
+      journeyTimeTimeOfDayStats: fillGaps('hour', timeOfDay, _range(0, 25), (hour) => {
+        /**
+         * This deliberately styles midnight at the start of the day as '00:00' and midnight
+         * at the end the day as '24:00' so that amCharts can distinguish the 2 categories
+         */
+        const startTime = `${hour.toString().padStart(2, '0')}:00`;
+        const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
+        return {
+          category: startTime,
+          binLabel: `${startTime} - ${endTime}`,
+        };
+      }),
       journeyTimeHistogram: fillGaps('bin', histogram, histRange, (bin) => ({
-        journeyTime: formatMinuteSeconds(Number(bin)),
-        duration: formatDuration(Number(bin)),
+        xAxisCategory: formatMinuteSeconds(Number(bin)),
+        xAxisLabel: formatDuration(Number(bin)),
       })),
+      serviceLinks: (stats.serviceLinks as ServiceLinkType[]) ?? [],
     };
   }
 
@@ -244,5 +319,28 @@ export class CorridorsService {
         }
       })
     );
+  }
+
+  updateCorridor(inputs: CorridorUpdateInputType): Observable<void> {
+    return this.updateCorridorGQL.mutate({ inputs }).pipe(
+      map((result) => {
+        if (!result.data?.updateCorridor.success) {
+          throw result.data?.updateCorridor.error ?? result.errors?.map((err) => err.message) ?? 'Unknown error';
+        }
+      })
+    );
+  }
+
+  private addBoxPlotData(stats: CorridorStats): CorridorStats {
+    stats.journeyTimeStats.forEach((stat) => {
+      addBoxPlotChartDataItems(stat);
+    });
+    stats.journeyTimeDayOfWeekStats.forEach((stat) => {
+      addBoxPlotChartDataItems(stat);
+    });
+    stats.journeyTimeTimeOfDayStats.forEach((stat) => {
+      addBoxPlotChartDataItems(stat);
+    });
+    return stats;
   }
 }
